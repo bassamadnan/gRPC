@@ -4,14 +4,15 @@ import (
 	"context"
 	"flag"
 	"fmt"
-	knnpb "knn/pkg/api"
 	"log"
-	"sort"
 	"sync"
 	"time"
 
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
+
+	"knn/internal/utils"
+	knnpb "knn/pkg/api"
 )
 
 const BASE_PORT = 5050
@@ -46,7 +47,7 @@ func queryServer(serverAddr string, query *knnpb.Query, results chan<- []*knnpb.
 		log.Printf("Failed to get KNN from server %s: %v", serverAddr, err)
 		return
 	}
-
+	// fmt.Printf("recieved %v from %v\n", resp.Points, serverAddr)
 	results <- resp.Points
 }
 
@@ -84,23 +85,14 @@ func main() {
 		go queryServer(serverAddr, query, results, &wg)
 	}
 
-	go func() {
-		wg.Wait()
-		close(results)
-	}()
+	wg.Wait()
+	close(results)
 
-	var allPoints []*knnpb.Points
-	for serverPoints := range results {
-		allPoints = append(allPoints, serverPoints...)
-	}
-
-	sort.Slice(allPoints, func(i, j int) bool {
-		return allPoints[i].Distance < allPoints[j].Distance
-	})
+	kNearest := utils.ProcessResults(*k, results)
 
 	fmt.Printf("The %d nearest neighbors to point (%.2f, %.2f) are:\n", *k, *x, *y)
-	for i := 0; i < *k && i < len(allPoints); i++ {
-		point := allPoints[i]
+	for i := 0; i < *k && i < len(kNearest); i++ {
+		point := kNearest[i]
 		fmt.Printf("%d. (%.2f, %.2f) - Distance: %.4f\n", i+1, point.Point.X, point.Point.Y, point.Distance)
 	}
 }
