@@ -20,12 +20,13 @@ type server struct {
 	dataset      []knn.Point
 	serverNumber int32
 	totalServers int32
-	k            uint16
 }
 
-func (s *server) GetKNN(ctx context.Context, point *knnpb.Point) (*knnpb.Distances, error) {
-	queryPoint := knn.Point{X: point.X, Y: point.Y}
-	nearestNeighbors := utils.GetKNN(s.k, queryPoint, s.dataset)
+func (s *server) GetKNN(ctx context.Context, query *knnpb.Query) (*knnpb.Distances, error) {
+	queryPoint := knn.Point{X: query.Point.X, Y: query.Point.Y}
+	k := int(query.K)
+
+	nearestNeighbors := utils.GetKNN(uint16(k), queryPoint, s.dataset)
 
 	var distances knnpb.Distances
 	for _, neighbor := range nearestNeighbors {
@@ -47,16 +48,11 @@ func main() {
 	// flags
 	serverNumber := flag.Int("server", 0, "The server number (starting from 0)")
 	totalServers := flag.Int("total", 1, "Total number of servers")
-	k := flag.Int("k", 3, "The value of k for KNN")
 
 	flag.Parse()
 
 	if *serverNumber < 0 || *serverNumber >= *totalServers {
 		log.Fatalf("Invalid server number. Must be between 0 and %d", *totalServers-1)
-	}
-
-	if *k < 1 {
-		log.Fatalf("Invalid k value. Must be at least 1")
 	}
 
 	port := BASE_PORT + *serverNumber + 1
@@ -90,10 +86,9 @@ func main() {
 		dataset:      dataset,
 		serverNumber: int32(*serverNumber),
 		totalServers: int32(*totalServers),
-		k:            uint16(*k),
 	})
 
-	fmt.Printf("Server %d of %d is running on :%d (k=%d)\n", *serverNumber+1, *totalServers, port, *k)
+	fmt.Printf("Server %d of %d is running on :%d\n", *serverNumber+1, *totalServers, port)
 	fmt.Printf("Handling lines %d to %d of %d total lines\n", start, end, totalLines)
 	if err := s.Serve(lis); err != nil {
 		log.Fatalf("failed to serve: %v", err)

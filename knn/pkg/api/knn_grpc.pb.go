@@ -28,7 +28,7 @@ const (
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type KNNClient interface {
 	GetServers(ctx context.Context, in *Empty, opts ...grpc.CallOption) (*Servers, error)
-	GetKNN(ctx context.Context, in *Point, opts ...grpc.CallOption) (*Distances, error)
+	GetKNN(ctx context.Context, in *Query, opts ...grpc.CallOption) (*Distances, error)
 }
 
 type kNNClient struct {
@@ -49,7 +49,7 @@ func (c *kNNClient) GetServers(ctx context.Context, in *Empty, opts ...grpc.Call
 	return out, nil
 }
 
-func (c *kNNClient) GetKNN(ctx context.Context, in *Point, opts ...grpc.CallOption) (*Distances, error) {
+func (c *kNNClient) GetKNN(ctx context.Context, in *Query, opts ...grpc.CallOption) (*Distances, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(Distances)
 	err := c.cc.Invoke(ctx, KNN_GetKNN_FullMethodName, in, out, cOpts...)
@@ -64,7 +64,7 @@ func (c *kNNClient) GetKNN(ctx context.Context, in *Point, opts ...grpc.CallOpti
 // for forward compatibility.
 type KNNServer interface {
 	GetServers(context.Context, *Empty) (*Servers, error)
-	GetKNN(context.Context, *Point) (*Distances, error)
+	GetKNN(context.Context, *Query) (*Distances, error)
 	mustEmbedUnimplementedKNNServer()
 }
 
@@ -78,7 +78,7 @@ type UnimplementedKNNServer struct{}
 func (UnimplementedKNNServer) GetServers(context.Context, *Empty) (*Servers, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetServers not implemented")
 }
-func (UnimplementedKNNServer) GetKNN(context.Context, *Point) (*Distances, error) {
+func (UnimplementedKNNServer) GetKNN(context.Context, *Query) (*Distances, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetKNN not implemented")
 }
 func (UnimplementedKNNServer) mustEmbedUnimplementedKNNServer() {}
@@ -121,7 +121,7 @@ func _KNN_GetServers_Handler(srv interface{}, ctx context.Context, dec func(inte
 }
 
 func _KNN_GetKNN_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(Point)
+	in := new(Query)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
@@ -133,7 +133,7 @@ func _KNN_GetKNN_Handler(srv interface{}, ctx context.Context, dec func(interfac
 		FullMethod: KNN_GetKNN_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(KNNServer).GetKNN(ctx, req.(*Point))
+		return srv.(KNNServer).GetKNN(ctx, req.(*Query))
 	}
 	return interceptor(ctx, in, info, handler)
 }
