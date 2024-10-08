@@ -19,10 +19,15 @@ make make run_servers SERVERS=7
 Run the client
 
 ```bash
-go run cmd/client/main.go -x 2.7 -y 5.12 -k 3
+go run cmd/client/main.go -x 1.5 -y 2.5 -k 3
 ```
 
 Clean
 ```bash
 make clean
+```
+
+To confirm the result, run the test script in python
+```bash
+python3 test.py -x 1.5 -y 2.5 -k 3
 ```
