@@ -56,21 +56,21 @@ message AcceptRideRequest {
   string driver_id = 2;
 }
 
-message AcceptRideResponse {
-  bool success = 1;
-}
-
 message RejectRideRequest {
-  string ride_id = 1;
+  string rider_id = 1;
   string driver_id = 2;
 }
 
-message RejectRideResponse {
-  bool success = 1;
-}
 
 message RideCompletionRequest {
   string driver_id = 1;
+}
+
+message AcceptRideResponse {
+  bool success = 1;
+}
+message RejectRideResponse {
+  bool success = 1;
 }
 
 message RideCompletionResponse {
