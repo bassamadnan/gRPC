@@ -1,0 +1,78 @@
+syntax = "proto3";
+
+package myuber;
+
+service RideService {
+  rpc RequestRide (RideRequest) returns (RideResponse) {}
+  rpc GetRideStatus (RideStatusRequest) returns (RideStatusResponse) {}
+
+  rpc AcceptRide (AcceptRideRequest) returns (AcceptRideResponse) {}
+  rpc RejectRide (RejectRideRequest) returns (RejectRideResponse) {}
+  rpc CompleteRide (RideCompletionRequest) returns (RideCompletionResponse) {}
+}
+
+// we want the driver to know who he is serving (rider_id)
+
+message RideRequest {
+  string pickup = 1;
+  string destination = 2;
+  string rider_id = 3;
+}
+
+// rider client will be blocked till either of the below 3 occur
+message RideResponse {
+  enum Status {
+    ACCEPTED = 0;
+    REJECTED = 1; // rejected by all
+    NO_DRIVERS_AVAILABLE = 2; // none available to begin with
+  }
+  Status status = 1;
+  string driver_id = 2;
+}
+
+// server will check if it has tuple (rider_id, driver_id, status)
+// when rider client sends a request initially, the driver_id is -1, and status is set to pending (since we are waiting for drivers to accept)
+// when a driver accepts via the accept ride service, the stratus is set to in progress, so the get ride status will now return the same
+// when complete ride service has been called by driver, the status is set to completed
+// if a driver did not get accepted due to rejectride service, keep the driver_id as -1 and ask next driver connected to server
+message RideStatusRequest {
+  string rider_id = 1;
+}
+
+// after accepting, assume ride starts instantly and goes on for 5 seconds (random) or maybe at this as input
+message RideStatusResponse {
+  enum Status {
+    PENDING = 0;            // request has gone to the driver, he has not pressed y/n yet.
+    IN_PROGRESS = 1;        // driver accepted, ongoing ride
+    COMPLETED = 2;          // ride completed, driver should be set to free
+  }
+  Status status = 1;
+  string rider_id = 2;
+  string driver_id = 3;
+}
+
+message AcceptRideRequest {
+  string rider_id = 1;
+  string driver_id = 2;
+}
+
+message AcceptRideResponse {
+  bool success = 1;
+}
+
+message RejectRideRequest {
+  string ride_id = 1;
+  string driver_id = 2;
+}
+
+message RejectRideResponse {
+  bool success = 1;
+}
+
+message RideCompletionRequest {
+  string driver_id = 1;
+}
+
+message RideCompletionResponse {
+  bool success = 1;
+}
