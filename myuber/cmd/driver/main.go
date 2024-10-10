@@ -54,6 +54,7 @@ func main() {
 			AVAILABLE = false
 			resp := rscd.AcceptRide(request.RiderId, driverID, client)
 			if resp.Success == false {
+				fmt.Printf("rider: %v not waiting anymore\n", request.RiderId)
 				continue
 			}
 			input := utils.TakeInput("complete")

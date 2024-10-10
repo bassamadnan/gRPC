@@ -79,7 +79,20 @@ func (s *server) GetAvailableDrivers() []string {
 
 	return availableDrivers
 }
-func (s *server) isAssigned(riderId string) bool {
+func (s *server) isDriverAssigned(driverId string) bool {
+	// is driver assigned to a rider?
+	// should be present in the state
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	// check if assigned
+	for _, rides := range s.state {
+		if rides.driver_id == driverId {
+			return true
+		}
+	}
+	return false
+}
+func (s *server) isRiderAssigned(riderId string) bool {
 	// is rider assigned to a driver? check by state
 	// returns true if rider isnt in queue (no drivers available or completed or in progress already returned)
 	s.mu.Lock()
@@ -105,6 +118,9 @@ func (s *server) AssignDriver(req *rspb.RideRequest) {
 		Destination: req.Destination,
 	}
 	for _, DriverId := range availableDrivers {
+		if s.isDriverAssigned(DriverId) {
+			continue
+		}
 		stream := s.streams[DriverId]
 		err := stream.Send(stream_req)
 		if err != nil {
@@ -113,12 +129,12 @@ func (s *server) AssignDriver(req *rspb.RideRequest) {
 		// sleep this go routine for timeout seconds before sending next request
 		fmt.Printf("sent rider %v's request to driver %v\n", req.RiderId, DriverId)
 		time.Sleep(time.Duration(s.timeout) * time.Second)
-		if s.isAssigned(req.RiderId) {
+		if s.isRiderAssigned(req.RiderId) {
 			return
 		}
 	}
 
-	if !s.isAssigned(req.RiderId) {
+	if !s.isRiderAssigned(req.RiderId) {
 		for i, rides := range s.state {
 			if rides.rider_id != req.RiderId {
 				continue
@@ -129,6 +145,13 @@ func (s *server) AssignDriver(req *rspb.RideRequest) {
 }
 func (s *server) RequestRide(ctx context.Context, req *rspb.RideRequest) (*rspb.RideResponse, error) {
 	s.mu.Lock()
+	for i, rides := range s.state {
+		// if entry already exists, reset status to pending
+		if rides.rider_id != req.RiderId {
+			continue
+		}
+		s.state[i].status = rspb.RideStatusResponse_PENDING
+	}
 
 	// create new rideinfo instance
 	currRideInfo := &rideInfo{
