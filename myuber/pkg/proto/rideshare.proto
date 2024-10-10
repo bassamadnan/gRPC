@@ -44,6 +44,7 @@ message RideStatusResponse {
     PENDING = 0;            // request has gone to the driver, he has not pressed y/n yet.
     IN_PROGRESS = 1;        // driver accepted, ongoing ride
     NO_DRIVERS_AVAILABLE = 2; // all denied, or all occupied, or none connected
+    COMPLETED = 3;           // driver has marked ride completed via  completeride rpc
   }
   Status status = 1;
   string rider_id = 2;
