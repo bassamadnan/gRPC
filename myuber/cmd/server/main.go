@@ -125,14 +125,20 @@ func (s *server) RequestRide(ctx context.Context, req *rspb.RideRequest) (*rspb.
 		Success: true, // attempting to find a driver, request placed sucessfully
 	}, nil
 }
-func (s *server) GetRideStatus(context.Context, *rspb.RideStatusRequest) (*rspb.RideStatusResponse, error) {
-	// time.Sleep(11 * time.Second) -> results in timeout
-	fake_response := &rspb.RideStatusResponse{
-		Status:   rspb.RideStatusResponse_PENDING,
-		RiderId:  "riderlol",
-		DriverId: "driverlol",
+func (s *server) GetRideStatus(c context.Context, req *rspb.RideStatusRequest) (*rspb.RideStatusResponse, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	for _, rides := range s.state {
+		if rides.rider_id != req.RiderId {
+			continue
+		}
+		return &rspb.RideStatusResponse{
+			RiderId:  rides.rider_id,
+			DriverId: rides.driver_id,
+			Status:   rides.status,
+		}, nil
 	}
-	return fake_response, nil
+	return nil, nil
 }
 
 func unaryInterceptor(
