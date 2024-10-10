@@ -20,11 +20,11 @@ func RequestRide(c rspb.RideServiceClient) {
 		Destination: "destination1",
 		RiderId:     "riderid1",
 	}
-	rideStatusResponse, err := c.RequestRide(ctx, req)
+	rideResponse, err := c.RequestRide(ctx, req)
 	if err != nil {
 		log.Fatalf("error in getting servers %v\n", err)
 	}
-	fmt.Printf("got response: %v, status: %v, type %T\n", rideStatusResponse, rideStatusResponse.Status, rideStatusResponse.Status)
+	fmt.Printf("got response: %v, status: %v, type %T\n", rideResponse, rideResponse.Success, rideResponse.Success)
 }
 
 func main() {

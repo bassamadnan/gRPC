@@ -6,18 +6,10 @@ import (
 	"log"
 	rspb "myuber/pkg/proto"
 	"net"
+	"sync"
 
 	"google.golang.org/grpc"
 )
-
-//	type RideServiceServer interface {
-//		RequestRide(context.Context, *RideRequest) (*RideResponse, error)
-//		GetRideStatus(context.Context, *RideStatusRequest) (*RideStatusResponse, error)
-//		AcceptRide(context.Context, *AcceptRideRequest) (*AcceptRideResponse, error)
-//		RejectRide(context.Context, *RejectRideRequest) (*RejectRideResponse, error)
-//		CompleteRide(context.Context, *RideCompletionRequest) (*RideCompletionResponse, error)
-//		mustEmbedUnimplementedRideServiceServer()
-//	}
 
 // var (
 //
@@ -29,38 +21,109 @@ import (
 //
 // )
 
-type rideInfo struct {
-	rider_id       string
-	driver_id      string
-	response       rspb.RideResponse_Status
-	statusResponse rspb.RideStatusResponse_Status
-	pickup         string
-	destination    string
-}
+// type RideServiceServer interface {
+// 	RequestRide(context.Context, *RideRequest) (*RideResponse, error)
+// 	GetRideStatus(context.Context, *RideStatusRequest) (*RideStatusResponse, error)
+// 	ConnectDriver(*DriverRequest, grpc.ServerStreamingServer[DriverRideRequest]) error
+// 	AcceptRide(context.Context, *AcceptRideRequest) (*AcceptRideResponse, error)
+// 	RejectRide(context.Context, *RejectRideRequest) (*RejectRideResponse, error)
+// 	CompleteRide(context.Context, *RideCompletionRequest) (*RideCompletionResponse, error)
+// }
 
-func CreateNewRideInfo(rider_id string) rideInfo {
-	return rideInfo{
-		rider_id:  rider_id,
-		driver_id: "-1", //  no driver initially
-		status:    0,    // 0 for pending
-	}
+type rideInfo struct {
+	rider_id    string
+	driver_id   string
+	pickup      string
+	destination string
+	status      rspb.RideStatusResponse_Status
 }
 
 type server struct {
 	rspb.UnimplementedRideServiceServer
-
-	state []rideInfo // stores all the ride information
+	state            []rideInfo                                                    // stores all the ride information
+	streams          map[string]grpc.ServerStreamingServer[rspb.DriverRideRequest] // driverid, stream
+	mu               sync.Mutex
+	connectedDrivers []string
 }
 
-func (s *server) RequestRide(context.Context, *rspb.RideRequest) (*rspb.RideResponse, error) {
+func (s *server) ConnectDriver(req *rspb.DriverRequest, stream grpc.ServerStreamingServer[rspb.DriverRideRequest]) error {
+	s.mu.Lock()
+	s.streams[req.DriverId] = stream
+	s.connectedDrivers = append(s.connectedDrivers, req.DriverId)
+	s.mu.Unlock()
+
+	// https://pkg.go.dev/google.golang.org/grpc#ServerStream
+	// keep alive
+	// wait until stream is closed, returns a channel that closes when time out or context is cancelled?
+	// related to Go in general, !!!
+	<-stream.Context().Done()
+	return nil
+}
+
+func (s *server) GetAvailableDrivers() []string {
+	busyDrivers := make(map[string]bool)
+	for _, ride := range s.state {
+		if ride.driver_id != "" {
+			busyDrivers[ride.driver_id] = true
+		}
+	}
+
+	availableDrivers := []string{}
+	for _, driverID := range s.connectedDrivers {
+		if !busyDrivers[driverID] {
+			availableDrivers = append(availableDrivers, driverID)
+		}
+	}
+
+	return availableDrivers
+}
+
+func (s *server) RequestRide(ctx context.Context, req *rspb.RideRequest) (*rspb.RideResponse, error) {
 	fmt.Println("inside req ride ")
 	// iterate over all drivers
 	// for each driver send a request, with time out
 	// if no driver found/all occupied /all timed out then just return
 	// if driver is found then
-	// send accept ride request from the driver
+	// send requests to all drivers
 	// assign the driver
+	s.mu.Lock()
+	defer s.mu.Unlock()
 
+	// create new rideinfo instance
+	currRideInfo := &rideInfo{
+		rider_id:    req.RiderId,
+		destination: req.Destination,
+		pickup:      req.Pickup,
+		status:      rspb.RideStatusResponse_PENDING, // finding a driver
+	}
+	availableDrivers := s.GetAvailableDrivers()
+	if len(availableDrivers) == 0 {
+		fmt.Printf("No rides available\n")
+		currRideInfo.status = rspb.RideStatusResponse_NO_DRIVERS_AVAILABLE
+		s.state = append(s.state, *currRideInfo)
+		return &rspb.RideResponse{
+			Success: false,
+		}, nil
+	}
+
+	s.state = append(s.state, *currRideInfo)
+	// DriverRideRequest ->  to be sent via streams to drivers
+	stream_req := &rspb.DriverRideRequest{
+		RiderId:     req.RiderId,
+		Pickup:      req.Pickup,
+		Destination: req.Destination,
+	}
+	for _, DriverId := range availableDrivers {
+		stream := s.streams[DriverId]
+		err := stream.Send(stream_req)
+		if err != nil {
+			log.Fatalf("stream send error: %v\n", err)
+		}
+		print(DriverId)
+	}
+	return &rspb.RideResponse{
+		Success: true, // attempting to find a driver, request placed sucessfully
+	}, nil
 }
 func (s *server) GetRideStatus(context.Context, *rspb.RideStatusRequest) (*rspb.RideStatusResponse, error) {
 	// time.Sleep(11 * time.Second) -> results in timeout
@@ -89,7 +152,11 @@ func main() {
 		log.Fatalf("failed to listen: %v", err)
 	}
 	s := grpc.NewServer(grpc.UnaryInterceptor(unaryInterceptor))
-	rspb.RegisterRideServiceServer(s, &server{})
+	rspb.RegisterRideServiceServer(s, &server{
+		streams:          make(map[string]grpc.ServerStreamingServer[rspb.DriverRideRequest]),
+		state:            make([]rideInfo, 0),
+		connectedDrivers: make([]string, 0),
+	})
 
 	if err := s.Serve(lis); err != nil {
 		log.Fatalf("failed to serve: %v", err)
