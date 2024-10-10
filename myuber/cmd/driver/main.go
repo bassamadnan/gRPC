@@ -8,6 +8,7 @@ import (
 	"log"
 
 	rscd "myuber/internal/client/driver" // ride sharing client; driver type
+	utils "myuber/internal/utils"
 	rspb "myuber/pkg/proto"
 
 	"google.golang.org/grpc"
@@ -45,16 +46,19 @@ func main() {
 		}
 		// take user input for accept/reject
 		fmt.Printf("recieved request: %v, %T\n", request, request)
-		var input string
-		fmt.Print("Enter 1/0 to accept/reject: ")
-		n, err := fmt.Scanf("%v", &input)
-		if err != nil || n != 1 {
-			log.Fatalf("scanf error %v", err)
-		}
+		input := utils.TakeInput("accept/reject")
 
 		if input == "1" {
 			rscd.AcceptRide(request.RiderId, driverID, client)
+			input := utils.TakeInput("complete")
+			if input == "1" {
+				rscd.CompleteRide(driverID, client)
+			}
 		}
+		if input == "0" {
+			rscd.RejectRide(request.RiderId, driverID, client)
+		}
+
 	}
 
 }

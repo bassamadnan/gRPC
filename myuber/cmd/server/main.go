@@ -165,7 +165,28 @@ func (s *server) GetRideStatus(c context.Context, req *rspb.RideStatusRequest) (
 	}
 	return nil, nil
 }
+func (s *server) CompleteRide(ctx context.Context, req *rspb.RideCompletionRequest) (*rspb.RideCompletionResponse, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	for i, rides := range s.state {
+		if rides.driver_id != req.DriverId {
+			continue
+		}
+		if rides.status != rspb.RideStatusResponse_IN_PROGRESS {
+			// should never reach here
+			return &rspb.RideCompletionResponse{
+				Success: false,
+			}, nil
+		}
 
+		s.state[i].status = rspb.RideStatusResponse_COMPLETED
+		s.state[i].driver_id = ""
+		return &rspb.RideCompletionResponse{
+			Success: true,
+		}, nil
+	}
+	return nil, nil
+}
 func unaryInterceptor(
 	ctx context.Context,
 	req interface{},
