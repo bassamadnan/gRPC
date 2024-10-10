@@ -1,14 +1,23 @@
 syntax = "proto3";
 
 package myuber;
+option go_package="pkg/proto;rspb"; // ride sharing protobuf
 
 service RideService {
-  rpc RequestRide (RideRequest) returns (RideResponse) {}
-  rpc GetRideStatus (RideStatusRequest) returns (RideStatusResponse) {}
 
-  rpc AcceptRide (AcceptRideRequest) returns (AcceptRideResponse) {}
-  rpc RejectRide (RejectRideRequest) returns (RejectRideResponse) {}
-  rpc CompleteRide (RideCompletionRequest) returns (RideCompletionResponse) {}
+    // after getting a request from a rider, server sends a response 1 if its attempting to find, otherwise 0
+    rpc RequestRide (RideRequest)   returns (RideResponse) {}
+    // after getting a request from a rider, server sends one of the status as response
+    rpc GetRideStatus (RideStatusRequest) returns (RideStatusResponse) {}
+
+
+    // after server gets request from rider, it communicates to driver via stream (server side streaming)
+    rpc ConnectDriver(DriverRequest)   returns (stream DriverRideRequest) {}
+
+    // the following unary calls from driver to server
+    rpc AcceptRide (AcceptRideRequest) returns (AcceptRideResponse) {}
+    rpc RejectRide (RejectRideRequest) returns (RejectRideResponse) {}
+    rpc CompleteRide (RideCompletionRequest) returns (RideCompletionResponse) {}
 }
 
 // we want the driver to know who he is serving (rider_id)
@@ -19,16 +28,6 @@ message RideRequest {
   string rider_id = 3;
 }
 
-// rider client will be blocked till either of the below 3 occur
-message RideResponse {
-  enum Status {
-    ACCEPTED = 0;
-    REJECTED = 1; // rejected by all
-    NO_DRIVERS_AVAILABLE = 2; // none available to begin with
-  }
-  Status status = 1;
-  string driver_id = 2;
-}
 
 // server will check if it has tuple (rider_id, driver_id, status)
 // when rider client sends a request initially, the driver_id is -1, and status is set to pending (since we are waiting for drivers to accept)
@@ -44,11 +43,21 @@ message RideStatusResponse {
   enum Status {
     PENDING = 0;            // request has gone to the driver, he has not pressed y/n yet.
     IN_PROGRESS = 1;        // driver accepted, ongoing ride
-    COMPLETED = 2;          // ride completed, driver should be set to free
+    NO_DRIVERS_AVAILABLE = 2; // all denied, or all occupied
   }
   Status status = 1;
   string rider_id = 2;
   string driver_id = 3;
+}
+
+message DriverRequest {
+  string driver_id = 1;
+}
+
+message DriverRideRequest {
+  string rider_id = 1;
+  string pickup = 2;
+  string destination = 3;
 }
 
 message AcceptRideRequest {
@@ -64,6 +73,10 @@ message RejectRideRequest {
 
 message RideCompletionRequest {
   string driver_id = 1;
+}
+
+message RideResponse {
+    bool suess = 1;
 }
 
 message AcceptRideResponse {
