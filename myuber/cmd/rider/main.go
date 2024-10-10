@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"log"
 
-	rscr "myuber/internal/client" //rider sharing client: rider type
+	rscr "myuber/internal/client/rider" //rider sharing client: rider type
 	rspb "myuber/pkg/proto"
 
 	"google.golang.org/grpc"
