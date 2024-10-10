@@ -13,13 +13,13 @@ import (
 	"google.golang.org/grpc/credentials/insecure"
 )
 
-type requestInfo struct {
+type selfInfo struct {
 	pickup      string
 	destination string
 	id          string
 }
 
-func RequestRide(ri *requestInfo, c rspb.RideServiceClient) {
+func RequestRide(ri *selfInfo, c rspb.RideServiceClient) {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
@@ -46,7 +46,7 @@ func GetRideStatus(riderId string, c rspb.RideServiceClient) {
 	if err != nil {
 		log.Fatalf("error in getting servers %v\n", err)
 	}
-	if rideStatusResponse != nil {
+	if rideStatusResponse == nil {
 		log.Fatalf("empty response in getridestatus\n")
 	}
 	fmt.Printf("got response: %v, status: %v, type %T\n", rideStatusResponse, rideStatusResponse.Status, rideStatusResponse.Status)
@@ -56,10 +56,11 @@ func main() {
 
 	BASE_SERVER_ADDR := "localhost:5050"
 	clientId := flag.Int("id", 1, "rider id")
+	flag.Parse()
 	pickup := fmt.Sprintf("pickup%v", *clientId)
 	destination := fmt.Sprintf("destination%v", *clientId)
 	riderid := fmt.Sprintf("riderid%v", *clientId)
-	info := &requestInfo{
+	info := &selfInfo{
 		pickup:      pickup,
 		destination: destination,
 		id:          riderid,

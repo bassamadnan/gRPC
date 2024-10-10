@@ -77,6 +77,31 @@ func (s *server) GetAvailableDrivers() []string {
 
 	return availableDrivers
 }
+func (s *server) AcceptRide(ctx context.Context, req *rspb.AcceptRideRequest) (*rspb.AcceptRideResponse, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	for i, rides := range s.state {
+		if rides.rider_id != req.RiderId {
+			continue
+		}
+
+		if rides.status == rspb.RideStatusResponse_PENDING {
+			// successfully assign
+			s.state[i].driver_id = req.DriverId
+			s.state[i].status = rspb.RideStatusResponse_IN_PROGRESS
+			return &rspb.AcceptRideResponse{
+				Success: true,
+			}, nil
+		}
+
+		// already accepted by some other driver (in progress)
+		// or client alreayd got a no driver available response, client expected to request again
+		return &rspb.AcceptRideResponse{
+			Success: false,
+		}, nil
+	}
+	return nil, nil
+}
 
 func (s *server) RequestRide(ctx context.Context, req *rspb.RideRequest) (*rspb.RideResponse, error) {
 	fmt.Println("inside req ride ")
@@ -119,7 +144,6 @@ func (s *server) RequestRide(ctx context.Context, req *rspb.RideRequest) (*rspb.
 		if err != nil {
 			log.Fatalf("stream send error: %v\n", err)
 		}
-		print(DriverId)
 	}
 	return &rspb.RideResponse{
 		Success: true, // attempting to find a driver, request placed sucessfully
@@ -128,6 +152,7 @@ func (s *server) RequestRide(ctx context.Context, req *rspb.RideRequest) (*rspb.
 func (s *server) GetRideStatus(c context.Context, req *rspb.RideStatusRequest) (*rspb.RideStatusResponse, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
+
 	for _, rides := range s.state {
 		if rides.rider_id != req.RiderId {
 			continue
