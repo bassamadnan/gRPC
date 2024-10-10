@@ -8,7 +8,7 @@ import (
 	"time"
 )
 
-func AcceptRide(riderId string, driverId string, c rspb.RideServiceClient) {
+func AcceptRide(riderId string, driverId string, c rspb.RideServiceClient) *rspb.AcceptRideResponse {
 	req := &rspb.AcceptRideRequest{
 		RiderId:  riderId,
 		DriverId: driverId,
@@ -23,6 +23,7 @@ func AcceptRide(riderId string, driverId string, c rspb.RideServiceClient) {
 		log.Fatalf("empty response in acceptRide\n")
 	}
 	fmt.Printf("got response: %v, status: %v, type %T\n", acceptRideResponse, acceptRideResponse.Success, acceptRideResponse.Success)
+	return acceptRideResponse
 }
 
 func RejectRide(riderId string, driverId string, c rspb.RideServiceClient) {

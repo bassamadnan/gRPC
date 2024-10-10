@@ -17,6 +17,7 @@ import (
 
 func main() {
 	BASE_SERVER_ADDR := "localhost:5050"
+	AVAILABLE := true
 	clientId := flag.Int("id", 1, "driver id")
 	flag.Parse()
 	driverID := fmt.Sprintf("driver%v", *clientId)
@@ -35,6 +36,7 @@ func main() {
 	}
 
 	for {
+		fmt.Printf("Driver: %v listening for ride requests\n", driverID)
 		request, err := stream.Recv()
 		if err == io.EOF {
 			fmt.Println("Stream ended")
@@ -49,11 +51,17 @@ func main() {
 		input := utils.TakeInput("accept/reject")
 
 		if input == "1" {
-			rscd.AcceptRide(request.RiderId, driverID, client)
+			AVAILABLE = false
+			resp := rscd.AcceptRide(request.RiderId, driverID, client)
+			if resp.Success == false {
+				continue
+			}
 			input := utils.TakeInput("complete")
 			if input == "1" {
 				rscd.CompleteRide(driverID, client)
 			}
+			fmt.Printf("Driver %v now available\n", AVAILABLE)
+			AVAILABLE = true
 		}
 		if input == "0" {
 			rscd.RejectRide(request.RiderId, driverID, client)
