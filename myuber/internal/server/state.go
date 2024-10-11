@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"log"
+	lbpb "myuber/pkg/proto/loadbalance"
 	rspb "myuber/pkg/proto/rideshare"
 	spb "myuber/pkg/proto/state"
 	"time"
@@ -13,6 +14,7 @@ import (
 )
 
 const STATE_SERVICE_ADDR = "localhost:6969"
+const LOAD_BALANCE_SERVICE_ADDR = "localhost:7070"
 const STATE_TIMEOUT = 60
 
 type RideInfo struct {
@@ -119,4 +121,25 @@ func SetState(state []RideInfo, serverName string) (*spb.StateResponse, error) {
 	}
 
 	return client.SetState(ctx, spbState)
+}
+
+func AddServer(server string) (*lbpb.Empty, error) {
+	conn, err := grpc.NewClient(LOAD_BALANCE_SERVICE_ADDR, grpc.WithTransportCredentials(insecure.NewCredentials()))
+	if err != nil {
+		return nil, fmt.Errorf("failed to connect to load balancer: %v", err)
+	}
+	defer conn.Close()
+
+	client := lbpb.NewLoadBalanceServiceClient(conn)
+
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second*10)
+	defer cancel()
+
+	empty, err := client.AddServer(ctx, &lbpb.Server{Server: server})
+	if err != nil {
+		return nil, fmt.Errorf("failed to add server: %v", err)
+	}
+
+	fmt.Printf("server registed %s\n", server)
+	return empty, nil
 }

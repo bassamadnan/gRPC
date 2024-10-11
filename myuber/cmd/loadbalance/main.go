@@ -15,6 +15,7 @@ import (
 
 // GetServers(context.Context, *Empty) (*Servers, error)
 // GetServer(context.Context, *Empty) (*Server, error)
+// AddServer(context.Context, *Server) (*Empty, error)
 
 const (
 	LOAD_BALANCER_ADDR string = "localhost:7070"
@@ -83,34 +84,42 @@ func (s *server) GetServer(ctx context.Context, req *lbpb.Empty) (*lbpb.Server, 
 	}, nil
 }
 
+func (s *server) AddServer(ctx context.Context, req *lbpb.Server) (*lbpb.Empty, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	for _, ws := range s.servers {
+		if ws.address == req.Server {
+			// should not come here
+			return &lbpb.Empty{}, fmt.Errorf("server %s already exists", req.Server)
+		}
+	}
+	// assign a weight
+	weight := rand.Intn(5) + 1 // random weight between 1 and 5
+	s.servers = append(s.servers, weightedServer{address: req.Server, weight: weight})
+	s.totalWeight += weight
+
+	log.Printf("Added new server: %s with weight %d", req.Server, weight)
+	return &lbpb.Empty{}, nil
+}
+
 func main() {
 	lis, err := net.Listen("tcp", LOAD_BALANCER_ADDR)
-	numServers := flag.Int("n", 1, "number of servers")
-	algo := flag.Int("t", 1, "algorithm 1/2/3 fcfs/rr/custom")
-	flag.Parse()
 	if err != nil {
 		log.Fatalf("failed to listen: %v", err)
 	}
-	// 5050
-	// 5051
-	// 5052.. assume this isnt more than 9
-	weightedServers := make([]weightedServer, 0, *numServers)
-	totalWeight := 0
-	for i := 0; i < *numServers; i++ {
-		addr := fmt.Sprintf("localhost:505%v", i)
-		weight := rand.Intn(5) + 1 // random weight between 1 and 5
-		weightedServers = append(weightedServers, weightedServer{address: addr, weight: weight})
-		totalWeight += weight
-		println(addr)
-	}
+
+	algo := flag.Int("t", 1, "algorithm 1/2/3 fcfs/rr/custom")
+	flag.Parse()
+
 	s := grpc.NewServer()
 	lbpb.RegisterLoadBalanceServiceServer(s, &server{
-		servers:     weightedServers,
+		servers:     []weightedServer{},
 		algorithm:   *algo,
 		index:       0,
-		totalWeight: totalWeight,
+		totalWeight: 0,
 	})
-	log.Printf("State server listening at %v", lis.Addr())
+	log.Printf("Load balancer listening at %v", lis.Addr())
 	if err := s.Serve(lis); err != nil {
 		log.Fatalf("failed to serve: %v", err)
 	}

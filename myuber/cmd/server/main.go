@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"flag"
 	"fmt"
 	"log"
 	auth "myuber/internal/auth"
@@ -243,12 +244,15 @@ func (s *server) CompleteRide(ctx context.Context, req *rspb.RideCompletionReque
 }
 
 func main() {
-	port := 5050
+	id := flag.Int("id", 0, "server id")
+	flag.Parse()
 	DEFAULT_TIMEOUT := 5
-	lis, err := net.Listen("tcp", fmt.Sprintf(":%d", port))
+	addr := fmt.Sprintf("localhost:505%v", *id)
+	lis, err := net.Listen("tcp", addr)
 	if err != nil {
 		log.Fatalf("failed to listen: %v", err)
 	}
+	statemgmt.AddServer(addr)
 	tlsCredentials, err := auth.ServerLoadTLSCredentials()
 	if err != nil {
 		log.Fatal("cannot load TLS credentials: ", err)

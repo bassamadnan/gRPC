@@ -42,7 +42,7 @@ func main() {
 		Id:          riderid,
 	}
 
-	lbConn, err := grpc.Dial(LOAD_BALANCER_ADDR, grpc.WithTransportCredentials(insecure.NewCredentials()))
+	lbConn, err := grpc.NewClient(LOAD_BALANCER_ADDR, grpc.WithTransportCredentials(insecure.NewCredentials()))
 	if err != nil {
 		log.Fatalf("failed to connect to load balancer: %v", err)
 	}

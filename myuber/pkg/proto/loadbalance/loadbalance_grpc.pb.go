@@ -21,6 +21,7 @@ const _ = grpc.SupportPackageIsVersion9
 const (
 	LoadBalanceService_GetServers_FullMethodName = "/myuber.LoadBalanceService/GetServers"
 	LoadBalanceService_GetServer_FullMethodName  = "/myuber.LoadBalanceService/GetServer"
+	LoadBalanceService_AddServer_FullMethodName  = "/myuber.LoadBalanceService/AddServer"
 )
 
 // LoadBalanceServiceClient is the client API for LoadBalanceService service.
@@ -29,6 +30,7 @@ const (
 type LoadBalanceServiceClient interface {
 	GetServers(ctx context.Context, in *Empty, opts ...grpc.CallOption) (*Servers, error)
 	GetServer(ctx context.Context, in *Empty, opts ...grpc.CallOption) (*Server, error)
+	AddServer(ctx context.Context, in *Server, opts ...grpc.CallOption) (*Empty, error)
 }
 
 type loadBalanceServiceClient struct {
@@ -59,12 +61,23 @@ func (c *loadBalanceServiceClient) GetServer(ctx context.Context, in *Empty, opt
 	return out, nil
 }
 
+func (c *loadBalanceServiceClient) AddServer(ctx context.Context, in *Server, opts ...grpc.CallOption) (*Empty, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(Empty)
+	err := c.cc.Invoke(ctx, LoadBalanceService_AddServer_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // LoadBalanceServiceServer is the server API for LoadBalanceService service.
 // All implementations must embed UnimplementedLoadBalanceServiceServer
 // for forward compatibility.
 type LoadBalanceServiceServer interface {
 	GetServers(context.Context, *Empty) (*Servers, error)
 	GetServer(context.Context, *Empty) (*Server, error)
+	AddServer(context.Context, *Server) (*Empty, error)
 	mustEmbedUnimplementedLoadBalanceServiceServer()
 }
 
@@ -80,6 +93,9 @@ func (UnimplementedLoadBalanceServiceServer) GetServers(context.Context, *Empty)
 }
 func (UnimplementedLoadBalanceServiceServer) GetServer(context.Context, *Empty) (*Server, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetServer not implemented")
+}
+func (UnimplementedLoadBalanceServiceServer) AddServer(context.Context, *Server) (*Empty, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method AddServer not implemented")
 }
 func (UnimplementedLoadBalanceServiceServer) mustEmbedUnimplementedLoadBalanceServiceServer() {}
 func (UnimplementedLoadBalanceServiceServer) testEmbeddedByValue()                            {}
@@ -138,6 +154,24 @@ func _LoadBalanceService_GetServer_Handler(srv interface{}, ctx context.Context,
 	return interceptor(ctx, in, info, handler)
 }
 
+func _LoadBalanceService_AddServer_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(Server)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(LoadBalanceServiceServer).AddServer(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: LoadBalanceService_AddServer_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(LoadBalanceServiceServer).AddServer(ctx, req.(*Server))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // LoadBalanceService_ServiceDesc is the grpc.ServiceDesc for LoadBalanceService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -152,6 +186,10 @@ var LoadBalanceService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "GetServer",
 			Handler:    _LoadBalanceService_GetServer_Handler,
+		},
+		{
+			MethodName: "AddServer",
+			Handler:    _LoadBalanceService_AddServer_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},
