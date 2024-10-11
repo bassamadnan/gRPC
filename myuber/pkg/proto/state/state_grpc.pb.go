@@ -27,8 +27,8 @@ const (
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type StateServiceClient interface {
-	GetState(ctx context.Context, in *Empty, opts ...grpc.CallOption) (*State, error)
-	SetState(ctx context.Context, in *State, opts ...grpc.CallOption) (*Empty, error)
+	GetState(ctx context.Context, in *StateRequest, opts ...grpc.CallOption) (*State, error)
+	SetState(ctx context.Context, in *State, opts ...grpc.CallOption) (*StateResponse, error)
 }
 
 type stateServiceClient struct {
@@ -39,7 +39,7 @@ func NewStateServiceClient(cc grpc.ClientConnInterface) StateServiceClient {
 	return &stateServiceClient{cc}
 }
 
-func (c *stateServiceClient) GetState(ctx context.Context, in *Empty, opts ...grpc.CallOption) (*State, error) {
+func (c *stateServiceClient) GetState(ctx context.Context, in *StateRequest, opts ...grpc.CallOption) (*State, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(State)
 	err := c.cc.Invoke(ctx, StateService_GetState_FullMethodName, in, out, cOpts...)
@@ -49,9 +49,9 @@ func (c *stateServiceClient) GetState(ctx context.Context, in *Empty, opts ...gr
 	return out, nil
 }
 
-func (c *stateServiceClient) SetState(ctx context.Context, in *State, opts ...grpc.CallOption) (*Empty, error) {
+func (c *stateServiceClient) SetState(ctx context.Context, in *State, opts ...grpc.CallOption) (*StateResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(Empty)
+	out := new(StateResponse)
 	err := c.cc.Invoke(ctx, StateService_SetState_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
@@ -63,8 +63,8 @@ func (c *stateServiceClient) SetState(ctx context.Context, in *State, opts ...gr
 // All implementations must embed UnimplementedStateServiceServer
 // for forward compatibility.
 type StateServiceServer interface {
-	GetState(context.Context, *Empty) (*State, error)
-	SetState(context.Context, *State) (*Empty, error)
+	GetState(context.Context, *StateRequest) (*State, error)
+	SetState(context.Context, *State) (*StateResponse, error)
 	mustEmbedUnimplementedStateServiceServer()
 }
 
@@ -75,10 +75,10 @@ type StateServiceServer interface {
 // pointer dereference when methods are called.
 type UnimplementedStateServiceServer struct{}
 
-func (UnimplementedStateServiceServer) GetState(context.Context, *Empty) (*State, error) {
+func (UnimplementedStateServiceServer) GetState(context.Context, *StateRequest) (*State, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetState not implemented")
 }
-func (UnimplementedStateServiceServer) SetState(context.Context, *State) (*Empty, error) {
+func (UnimplementedStateServiceServer) SetState(context.Context, *State) (*StateResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method SetState not implemented")
 }
 func (UnimplementedStateServiceServer) mustEmbedUnimplementedStateServiceServer() {}
@@ -103,7 +103,7 @@ func RegisterStateServiceServer(s grpc.ServiceRegistrar, srv StateServiceServer)
 }
 
 func _StateService_GetState_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(Empty)
+	in := new(StateRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
@@ -115,7 +115,7 @@ func _StateService_GetState_Handler(srv interface{}, ctx context.Context, dec fu
 		FullMethod: StateService_GetState_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(StateServiceServer).GetState(ctx, req.(*Empty))
+		return srv.(StateServiceServer).GetState(ctx, req.(*StateRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }

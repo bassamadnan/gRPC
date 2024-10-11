@@ -4,17 +4,20 @@ package myuber;
 option go_package="pkg/proto/state;spb"; // state protobuf
 
 service StateService{
-    rpc GetState(Empty) returns (State) {}
-    rpc SetState(State) returns (Empty) {}
+    rpc GetState(StateRequest) returns (State) {}
+    rpc SetState(State) returns (StateResponse) {}
 }
 
-message Empty{
-
+message StateRequest{
+    string server = 1;
 }
 
+message StateResponse{
+    bool success = 1;
+}
 message State{
     repeated RideInfo state = 1;
-    string server = 2; // server calling the StateService
+    string server = 2; // server calling the StateService while set state only
 }
 
 message RideInfo{
