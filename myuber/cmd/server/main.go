@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"log"
+	auth "myuber/internal/auth"
 	rspb "myuber/pkg/proto"
 	"net"
 	"sync"
@@ -259,7 +260,13 @@ func main() {
 	if err != nil {
 		log.Fatalf("failed to listen: %v", err)
 	}
-	s := grpc.NewServer(grpc.UnaryInterceptor(unaryInterceptor))
+	tlsCredentials, err := auth.ServerLoadTLSCredentials()
+	if err != nil {
+		log.Fatal("cannot load TLS credentials: ", err)
+	}
+	var opts []grpc.ServerOption
+	opts = []grpc.ServerOption{grpc.Creds(tlsCredentials), grpc.UnaryInterceptor(unaryInterceptor)}
+	s := grpc.NewServer(opts...)
 	rspb.RegisterRideServiceServer(s, &server{
 		streams:          make(map[string]grpc.ServerStreamingServer[rspb.DriverRideRequest]),
 		state:            make([]rideInfo, 0),

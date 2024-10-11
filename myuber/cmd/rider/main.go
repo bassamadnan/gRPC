@@ -5,11 +5,11 @@ import (
 	"fmt"
 	"log"
 
+	auth "myuber/internal/auth"
 	rscr "myuber/internal/client/rider" //rider sharing client: rider type
 	rspb "myuber/pkg/proto"
 
 	"google.golang.org/grpc"
-	"google.golang.org/grpc/credentials/insecure"
 )
 
 func main() {
@@ -26,8 +26,11 @@ func main() {
 		Destination: destination,
 		Id:          riderid,
 	}
-
-	opts := []grpc.DialOption{grpc.WithTransportCredentials(insecure.NewCredentials())}
+	tlsCredentials, err := auth.ClientLoadTLSCredentials()
+	if err != nil {
+		log.Fatal("cannot load TLS credentials: ", err)
+	}
+	opts := []grpc.DialOption{grpc.WithTransportCredentials(tlsCredentials)}
 	conn, err := grpc.NewClient(BASE_SERVER_ADDR, opts...)
 	if err != nil {
 		log.Fatalf("conn failed %v", err)
