@@ -1,0 +1,32 @@
+syntax = "proto3";
+
+package myuber;
+option go_package="pkg/proto;spb"; // state protobuf
+
+service StateService{
+    rpc GetState(Empty) returns (State) {}
+    rpc SetState(State) returns (Empty) {}
+}
+
+message Empty{
+
+}
+
+message State{
+    repeated RideInfo state = 1;
+    string server = 2; // server calling the StateService
+}
+
+message RideInfo{
+    enum Status {
+    PENDING = 0;            // request has gone to the driver, he has not pressed y/n yet.
+    IN_PROGRESS = 1;        // driver accepted, ongoing ride
+    NO_DRIVERS_AVAILABLE = 2; // all denied, or all occupied, or none connected
+    COMPLETED = 3;           // driver has marked ride completed via  completeride rpc
+    }
+    string rider_id = 1;
+    string driver_id = 2;
+    string pickup = 3;
+    string destination = 4;
+    Status status = 5;
+}
