@@ -140,6 +140,7 @@ func main() {
 				rscd.RejectRide(request.RiderId, driverID, client)
 			}
 			conn.Close()
+			log.Printf("%v waiting for requests\n", driverID)
 		}
 	}
 
