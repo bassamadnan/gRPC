@@ -29,6 +29,7 @@ func (s *server) ConnectDriver(req *rspb.DriverRequest, stream grpc.ServerStream
 	s.mu.Lock()
 	s.streams[req.DriverId] = stream
 	s.connectedDrivers = append(s.connectedDrivers, req.DriverId)
+	log.Printf("Driver has connected %v server\n", req.DriverId)
 	s.mu.Unlock()
 
 	// https://pkg.go.dev/google.golang.org/grpc#ServerStream
@@ -218,6 +219,24 @@ func (s *server) AcceptRide(ctx context.Context, req *rspb.AcceptRideRequest) (*
 	return nil, nil
 }
 
+func (s *server) RejectRide(ctx context.Context, req *rspb.RejectRideRequest) (*rspb.RejectRideResponse, error) {
+	state, _ := statemgmt.GetState(s.serverName)
+	defer statemgmt.SetState(state, s.serverName)
+	for _, ride := range state {
+
+		if ride.DriverId == req.DriverId && ride.Status == rspb.RideStatusResponse_IN_PROGRESS {
+			// should never reach here
+			ride.Status = rspb.RideStatusResponse_PENDING
+			return &rspb.RejectRideResponse{
+				Success: false,
+			}, nil
+		}
+	}
+	return &rspb.RejectRideResponse{
+		Success: true,
+	}, nil
+}
+
 func (s *server) CompleteRide(ctx context.Context, req *rspb.RideCompletionRequest) (*rspb.RideCompletionResponse, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
@@ -246,7 +265,7 @@ func (s *server) CompleteRide(ctx context.Context, req *rspb.RideCompletionReque
 func main() {
 	id := flag.Int("id", 0, "server id")
 	flag.Parse()
-	DEFAULT_TIMEOUT := 5
+	DEFAULT_TIMEOUT := 5 // timeout till request is sent to next driver
 	addr := fmt.Sprintf("localhost:505%v", *id)
 	lis, err := net.Listen("tcp", addr)
 	if err != nil {
@@ -268,7 +287,7 @@ func main() {
 		streams:          make(map[string]grpc.ServerStreamingServer[rspb.DriverRideRequest]),
 		connectedDrivers: make([]string, 0),
 		timeout:          DEFAULT_TIMEOUT,
-		serverName:       "server1",
+		serverName:       fmt.Sprintf("server%v", *id),
 	})
 
 	if err := s.Serve(lis); err != nil {
