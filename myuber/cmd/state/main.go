@@ -2,10 +2,12 @@ package main
 
 import (
 	"context"
-	"fmt"
 	"log"
 	spb "myuber/pkg/proto/state"
+	"net"
 	"sync"
+
+	"google.golang.org/grpc"
 )
 
 const BASE_SERVER_ADDR string = "localhost:6969"
@@ -45,7 +47,7 @@ func (s *server) GetState(ctx context.Context, req *spb.StateRequest) (*spb.Stat
 		state_arr = append(state_arr, rInfo)
 	}
 	s.holder = req.Server
-	log.Printf("Lock given to server: %v\n", s.holder)
+	log.Printf("lock given to server %v --> %v\n", req.Server, s.state)
 	return &spb.State{
 		State: state_arr,
 	}, nil
@@ -73,10 +75,23 @@ func (s *server) SetState(ctx context.Context, req *spb.State) (*spb.StateRespon
 	}
 	log.Printf("Lock released by %s\n", s.holder)
 	s.holder = ""
+	log.Printf("state after setState %v\n", s.state)
 	return &spb.StateResponse{
 		Success: true,
 	}, nil
 }
+
 func main() {
-	fmt.Println(1)
+	lis, err := net.Listen("tcp", BASE_SERVER_ADDR)
+	if err != nil {
+		log.Fatalf("failed to listen: %v", err)
+	}
+	s := grpc.NewServer()
+	spb.RegisterStateServiceServer(s, &server{
+		state: make([]rideInfo, 0),
+	})
+	log.Printf("State server listening at %v", lis.Addr())
+	if err := s.Serve(lis); err != nil {
+		log.Fatalf("failed to serve: %v", err)
+	}
 }

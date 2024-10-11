@@ -17,11 +17,11 @@ import (
 
 type server struct {
 	rspb.UnimplementedRideServiceServer
-	state            []statemgmt.RideInfo                                          // stores all the ride information
 	streams          map[string]grpc.ServerStreamingServer[rspb.DriverRideRequest] // driverid, stream
 	mu               sync.Mutex
 	connectedDrivers []string
 	timeout          int // timeout for int seconds
+	serverName       string
 }
 
 func (s *server) ConnectDriver(req *rspb.DriverRequest, stream grpc.ServerStreamingServer[rspb.DriverRideRequest]) error {
@@ -38,9 +38,9 @@ func (s *server) ConnectDriver(req *rspb.DriverRequest, stream grpc.ServerStream
 	return nil
 }
 
-func (s *server) GetAvailableDrivers() []string {
+func (s *server) GetAvailableDrivers(state *[]statemgmt.RideInfo) []string {
 	busyDrivers := make(map[string]bool)
-	for _, ride := range s.state {
+	for _, ride := range *state {
 		if ride.DriverId != "" {
 			busyDrivers[ride.DriverId] = true
 		}
@@ -61,8 +61,10 @@ func (s *server) isDriverAssigned(driverId string) bool {
 	// should be present in the state
 	s.mu.Lock()
 	defer s.mu.Unlock()
+	state, _ := statemgmt.GetState(s.serverName)
+	defer statemgmt.SetState(state, s.serverName)
 	// check if assigned
-	for _, rides := range s.state {
+	for _, rides := range state {
 		if rides.DriverId == driverId {
 			return true
 		}
@@ -75,13 +77,15 @@ func (s *server) isRiderAssigned(riderId string) bool {
 	// returns true if rider isnt in queue (no drivers available or completed or in progress already returned)
 	s.mu.Lock()
 	defer s.mu.Unlock()
+	state, _ := statemgmt.GetState(s.serverName)
+	defer statemgmt.SetState(state, s.serverName)
 	// check if assigned
 	found := false
-	for i, rides := range s.state {
+	for i, rides := range state {
 		if rides.RiderId != riderId {
 			continue
 		}
-		if s.state[i].Status != rspb.RideStatusResponse_PENDING {
+		if state[i].Status != rspb.RideStatusResponse_PENDING {
 			found = true
 			break // rider isnt waiting for a driver, break the loop
 		}
@@ -90,7 +94,9 @@ func (s *server) isRiderAssigned(riderId string) bool {
 }
 
 func (s *server) AssignDriver(req *rspb.RideRequest) {
-	availableDrivers := s.GetAvailableDrivers()
+	state, _ := statemgmt.GetState(s.serverName)
+	availableDrivers := s.GetAvailableDrivers(&state)
+	statemgmt.SetState(state, s.serverName)
 	stream_req := &rspb.DriverRideRequest{
 		RiderId:     req.RiderId,
 		Pickup:      req.Pickup,
@@ -114,23 +120,26 @@ func (s *server) AssignDriver(req *rspb.RideRequest) {
 	}
 
 	if !s.isRiderAssigned(req.RiderId) {
-		for i, rides := range s.state {
+		state, _ := statemgmt.GetState(s.serverName)
+		for i, rides := range state {
 			if rides.RiderId != req.RiderId {
 				continue
 			}
-			s.state[i].Status = rspb.RideStatusResponse_NO_DRIVERS_AVAILABLE // none could be assigned
+			state[i].Status = rspb.RideStatusResponse_NO_DRIVERS_AVAILABLE // none could be assigned
 		}
+		statemgmt.SetState(state, s.serverName)
 	}
 }
 
 func (s *server) RequestRide(ctx context.Context, req *rspb.RideRequest) (*rspb.RideResponse, error) {
 	s.mu.Lock()
-	for i, rides := range s.state {
+	state, _ := statemgmt.GetState(s.serverName)
+	for i, rides := range state {
 		// if entry already exists, reset status to pending
 		if rides.RiderId != req.RiderId {
 			continue
 		}
-		s.state[i].Status = rspb.RideStatusResponse_PENDING
+		state[i].Status = rspb.RideStatusResponse_PENDING
 	}
 
 	// create new rideinfo instance
@@ -140,18 +149,21 @@ func (s *server) RequestRide(ctx context.Context, req *rspb.RideRequest) (*rspb.
 		Pickup:      req.Pickup,
 		Status:      rspb.RideStatusResponse_PENDING, // finding a driver
 	}
-	availableDrivers := s.GetAvailableDrivers()
+	availableDrivers := s.GetAvailableDrivers(&state)
 	if len(availableDrivers) == 0 {
 		fmt.Printf("No rides available\n")
 		currRideInfo.Status = rspb.RideStatusResponse_NO_DRIVERS_AVAILABLE
-		s.state = append(s.state, *currRideInfo)
+		state = append(state, *currRideInfo)
+		statemgmt.SetState(state, s.serverName)
+		s.mu.Unlock()
 		return &rspb.RideResponse{
 			Success: false,
 		}, nil
 	}
 
-	s.state = append(s.state, *currRideInfo)
+	state = append(state, *currRideInfo)
 	s.mu.Unlock()
+	statemgmt.SetState(state, s.serverName)
 	go s.AssignDriver(req) // go routine to assign drivers to be run in background
 
 	return &rspb.RideResponse{
@@ -162,8 +174,9 @@ func (s *server) RequestRide(ctx context.Context, req *rspb.RideRequest) (*rspb.
 func (s *server) GetRideStatus(c context.Context, req *rspb.RideStatusRequest) (*rspb.RideStatusResponse, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-
-	for _, rides := range s.state {
+	state, _ := statemgmt.GetState(s.serverName)
+	defer statemgmt.SetState(state, s.serverName)
+	for _, rides := range state {
 		if rides.RiderId != req.RiderId {
 			continue
 		}
@@ -179,15 +192,17 @@ func (s *server) GetRideStatus(c context.Context, req *rspb.RideStatusRequest) (
 func (s *server) AcceptRide(ctx context.Context, req *rspb.AcceptRideRequest) (*rspb.AcceptRideResponse, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	for i, rides := range s.state {
+	state, _ := statemgmt.GetState(s.serverName)
+	defer statemgmt.SetState(state, s.serverName)
+	for i, rides := range state {
 		if rides.RiderId != req.RiderId {
 			continue
 		}
 
 		if rides.Status == rspb.RideStatusResponse_PENDING {
 			// successfully assign
-			s.state[i].DriverId = req.DriverId
-			s.state[i].Status = rspb.RideStatusResponse_IN_PROGRESS
+			state[i].DriverId = req.DriverId
+			state[i].Status = rspb.RideStatusResponse_IN_PROGRESS
 			return &rspb.AcceptRideResponse{
 				Success: true,
 			}, nil
@@ -205,7 +220,9 @@ func (s *server) AcceptRide(ctx context.Context, req *rspb.AcceptRideRequest) (*
 func (s *server) CompleteRide(ctx context.Context, req *rspb.RideCompletionRequest) (*rspb.RideCompletionResponse, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	for i, rides := range s.state {
+	state, _ := statemgmt.GetState(s.serverName)
+	defer statemgmt.SetState(state, s.serverName)
+	for i, rides := range state {
 		if rides.DriverId != req.DriverId {
 			continue
 		}
@@ -216,8 +233,8 @@ func (s *server) CompleteRide(ctx context.Context, req *rspb.RideCompletionReque
 			}, nil
 		}
 
-		s.state[i].Status = rspb.RideStatusResponse_COMPLETED
-		s.state[i].DriverId = ""
+		state[i].Status = rspb.RideStatusResponse_COMPLETED
+		state[i].DriverId = ""
 		return &rspb.RideCompletionResponse{
 			Success: true,
 		}, nil
@@ -245,9 +262,9 @@ func main() {
 	s := grpc.NewServer(opts...)
 	rspb.RegisterRideServiceServer(s, &server{
 		streams:          make(map[string]grpc.ServerStreamingServer[rspb.DriverRideRequest]),
-		state:            make([]statemgmt.RideInfo, 0),
 		connectedDrivers: make([]string, 0),
 		timeout:          DEFAULT_TIMEOUT,
+		serverName:       "server1",
 	})
 
 	if err := s.Serve(lis); err != nil {

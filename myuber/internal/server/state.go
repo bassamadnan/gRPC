@@ -93,6 +93,7 @@ func GetState(serverName string) ([]RideInfo, error) {
 }
 
 func SetState(state []RideInfo, serverName string) (*spb.StateResponse, error) {
+	fmt.Printf("setting state to -> %v\n", state)
 	conn, client, err := connectToServer()
 	if err != nil {
 		return nil, err
