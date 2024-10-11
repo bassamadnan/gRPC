@@ -1,7 +1,7 @@
 syntax = "proto3";
 
 package myuber;
-option go_package="pkg/proto;spb"; // state protobuf
+option go_package="pkg/proto/state;spb"; // state protobuf
 
 service StateService{
     rpc GetState(Empty) returns (State) {}

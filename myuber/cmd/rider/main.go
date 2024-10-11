@@ -7,7 +7,7 @@ import (
 
 	auth "myuber/internal/auth"
 	rscr "myuber/internal/client/rider" //rider sharing client: rider type
-	rspb "myuber/pkg/proto"
+	rspb "myuber/pkg/proto/rideshare"
 
 	"google.golang.org/grpc"
 )

@@ -6,32 +6,13 @@ import (
 	"log"
 	auth "myuber/internal/auth"
 	interceptor "myuber/internal/interceptor"
-	rspb "myuber/pkg/proto"
+	rspb "myuber/pkg/proto/rideshare"
 	"net"
 	"sync"
 	"time"
 
 	"google.golang.org/grpc"
 )
-
-// var (
-//
-//	tls        = flag.Bool("tls", false, "Connection uses TLS if true, else plain TCP")
-//	certFile   = flag.String("cert_file", "", "The TLS cert file")
-//	keyFile    = flag.String("key_file", "", "The TLS key file")
-//	jsonDBFile = flag.String("json_db_file", "", "A json file containing a list of features")
-//	port       = flag.Int("port", 50051, "The server port")
-//
-// )
-
-// type RideServiceServer interface {
-// 	RequestRide(context.Context, *RideRequest) (*RideResponse, error)
-// 	GetRideStatus(context.Context, *RideStatusRequest) (*RideStatusResponse, error)
-// 	ConnectDriver(*DriverRequest, grpc.ServerStreamingServer[DriverRideRequest]) error
-// 	AcceptRide(context.Context, *AcceptRideRequest) (*AcceptRideResponse, error)
-// 	RejectRide(context.Context, *RejectRideRequest) (*RejectRideResponse, error)
-// 	CompleteRide(context.Context, *RideCompletionRequest) (*RideCompletionResponse, error)
-// }
 
 type rideInfo struct {
 	rider_id    string

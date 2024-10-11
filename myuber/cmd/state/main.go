@@ -1,6 +1,6 @@
-package main
+// package main
 
-func main() {
-	BASE_SERVER_ADDR := "localhost:6969"
+// func main() {
+// 	BASE_SERVER_ADDR := "localhost:6969"
 
-}
+// }

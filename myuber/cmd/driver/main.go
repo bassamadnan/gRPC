@@ -10,7 +10,7 @@ import (
 	auth "myuber/internal/auth"
 	rscd "myuber/internal/client/driver" // ride sharing client; driver type
 	utils "myuber/internal/utils"
-	rspb "myuber/pkg/proto"
+	rspb "myuber/pkg/proto/rideshare"
 
 	"google.golang.org/grpc"
 )

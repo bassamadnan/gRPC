@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 	"log"
-	rspb "myuber/pkg/proto"
+	rspb "myuber/pkg/proto/rideshare"
 	"time"
 )
 

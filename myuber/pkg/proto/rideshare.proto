@@ -1,7 +1,7 @@
 syntax = "proto3";
 
 package myuber;
-option go_package="pkg/proto;rspb"; // ride sharing protobuf
+option go_package="pkg/proto/rideshare;rspb"; // ride sharing protobuf
 
 service RideService {
 
