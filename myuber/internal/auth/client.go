@@ -10,7 +10,7 @@ import (
 )
 
 // https://dev.to/techschoolguru/how-to-secure-grpc-connection-with-ssl-tls-in-go-4ph
-func ClientLoadTLSCredentials() (credentials.TransportCredentials, error) {
+func ClientLoadTLSCredentials(clientType string) (credentials.TransportCredentials, error) {
 	// Load certificate of the CA who signed server's certificate
 	pemServerCA, err := os.ReadFile("cert/ca-cert.pem")
 	if err != nil {
@@ -23,7 +23,7 @@ func ClientLoadTLSCredentials() (credentials.TransportCredentials, error) {
 	}
 
 	// Load client's certificate and private key
-	clientCert, err := tls.LoadX509KeyPair("cert/client-cert.pem", "cert/client-key.pem")
+	clientCert, err := tls.LoadX509KeyPair(fmt.Sprintf("cert/%s-cert.pem", clientType), fmt.Sprintf("cert/%s-key.pem", clientType))
 	if err != nil {
 		return nil, err
 	}
@@ -32,9 +32,17 @@ func ClientLoadTLSCredentials() (credentials.TransportCredentials, error) {
 	config := &tls.Config{
 		Certificates: []tls.Certificate{clientCert},
 		RootCAs:      certPool,
-		// ServerName:   "localhost", // to not do this , change localhost line in gen.sh had to add SANS option for Go- DONE
+		ServerName:   "localhost", // to not do this , change localhost line in gen.sh had to add SANS option for Go- DONE
 		// InsecureSkipVerify: true,
 	}
 
 	return credentials.NewTLS(config), nil
+}
+
+func RiderLoadTLSCredentials() (credentials.TransportCredentials, error) {
+	return ClientLoadTLSCredentials("rider")
+}
+
+func DriverLoadTLSCredentials() (credentials.TransportCredentials, error) {
+	return ClientLoadTLSCredentials("driver")
 }

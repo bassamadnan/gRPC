@@ -26,7 +26,7 @@ func main() {
 		Destination: destination,
 		Id:          riderid,
 	}
-	tlsCredentials, err := auth.ClientLoadTLSCredentials()
+	tlsCredentials, err := auth.RiderLoadTLSCredentials()
 	if err != nil {
 		log.Fatal("cannot load TLS credentials: ", err)
 	}

@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	auth "myuber/internal/auth"
+	interceptor "myuber/internal/interceptor"
 	rspb "myuber/pkg/proto"
 	"net"
 	"sync"
@@ -243,15 +244,6 @@ func (s *server) CompleteRide(ctx context.Context, req *rspb.RideCompletionReque
 	}
 	return nil, nil
 }
-func unaryInterceptor(
-	ctx context.Context,
-	req interface{},
-	info *grpc.UnaryServerInfo,
-	handler grpc.UnaryHandler,
-) (interface{}, error) {
-	log.Println("--> unary interceptor: ", info.FullMethod)
-	return handler(ctx, req)
-}
 
 func main() {
 	port := 5050
@@ -265,7 +257,11 @@ func main() {
 		log.Fatal("cannot load TLS credentials: ", err)
 	}
 	var opts []grpc.ServerOption
-	opts = []grpc.ServerOption{grpc.Creds(tlsCredentials), grpc.UnaryInterceptor(unaryInterceptor)}
+	chainedInterceptor := interceptor.ChainedInterceptor(
+		interceptor.AuthorizationInterceptor,
+		interceptor.LoggingInterceptor,
+	)
+	opts = []grpc.ServerOption{grpc.Creds(tlsCredentials), grpc.UnaryInterceptor(chainedInterceptor)}
 	s := grpc.NewServer(opts...)
 	rspb.RegisterRideServiceServer(s, &server{
 		streams:          make(map[string]grpc.ServerStreamingServer[rspb.DriverRideRequest]),

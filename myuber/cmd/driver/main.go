@@ -22,7 +22,7 @@ func main() {
 	flag.Parse()
 	driverID := fmt.Sprintf("driver%v", *clientId)
 
-	tlsCredentials, err := auth.ClientLoadTLSCredentials()
+	tlsCredentials, err := auth.DriverLoadTLSCredentials()
 	if err != nil {
 		log.Fatal("cannot load TLS credentials: ", err)
 	}
