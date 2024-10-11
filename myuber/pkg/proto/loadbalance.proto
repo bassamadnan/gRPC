@@ -1,0 +1,21 @@
+syntax = "proto3";
+
+package myuber;
+option go_package="pkg/proto/loadbalance;lbpb"; // load balancer protobuf
+
+service LoadBalanceService{
+    rpc GetServers(Empty) returns (Servers) {} // all servers, for driver side
+    rpc GetServer(Empty) returns (Server) {} // for all clients
+}
+
+message Empty {
+
+}
+
+message Servers{
+    repeated string servers = 1;
+}
+
+message Server{
+    string server = 1;
+}
