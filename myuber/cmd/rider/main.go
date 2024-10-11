@@ -19,7 +19,7 @@ import (
 const LOAD_BALANCER_ADDR string = "localhost:7070"
 
 func getServerFromLoadBalancer(lbClient lbpb.LoadBalanceServiceClient) (string, error) {
-	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second*10)
 	defer cancel()
 
 	server, err := lbClient.GetServer(ctx, &lbpb.Empty{})
