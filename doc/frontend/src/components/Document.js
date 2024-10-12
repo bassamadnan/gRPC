@@ -25,24 +25,29 @@ const Document = () => {
         }
       });
     };
+    sayHello()
+  });
 
-    if (client && name) {
-      sayHello();
-    }
-  }, [client, name]);
+  const handleTyping = (event) => {
+    console.log('Character typed at position:', event.target.selectionStart);
+  };
 
   return (
-    <div className="p-4">
-      <h2 className="text-2xl font-bold mb-4">Collaborative Document</h2>
+    <div className="flex flex-col h-screen p-4 bg-gray-900 text-white">
+      <h2 className="text-2xl font-bold mb-4 border-b border-gray-600 pb-2">Collaborative Document</h2>
       {greeting && (
-        <p className="text-lg mb-4">Server says: {greeting}</p>
+        <p className="text-lg mb-4 bg-green-700 p-2 rounded">Server says: {greeting}</p>
       )}
       {error && (
-        <p className="text-lg text-red-500 mb-4">{error}</p>
+        <p className="text-lg text-red-400 mb-4">{error}</p>
       )}
       <textarea 
-        className="w-full h-64 p-2 border rounded"
+        className="flex-1 w-full p-3 border border-gray-700 rounded resize-none bg-gray-800 text-white focus:outline-none focus:border-blue-500"
         placeholder="Start typing your document here..."
+        onInput={handleTyping}
+        style={{
+          minHeight: '300px'
+        }}
       />
     </div>
   );
