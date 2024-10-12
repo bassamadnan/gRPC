@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"log"
 	"math"
+	"os"
+	"os/exec"
 	"strings"
 
 	lrpb "labyrinth/pkg/proto"
@@ -104,6 +106,9 @@ func generateHiddenGrid(M, N int) [][]string {
 }
 
 func printTablesSideBySide(grid [][]string, client *utils.Client) {
+	cmd := exec.Command("clear") //Linux example, its tested
+	cmd.Stdout = os.Stdout
+	cmd.Run()
 	for i := 0; i < 15; i++ {
 		fmt.Println()
 	}
