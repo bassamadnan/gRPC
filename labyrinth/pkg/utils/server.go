@@ -4,6 +4,8 @@ import (
 	"context"
 	"fmt"
 	lrpb "labyrinth/pkg/proto"
+
+	"google.golang.org/grpc"
 )
 
 type Server struct {
@@ -72,4 +74,40 @@ func (s *Server) RegisterMove(ctx context.Context, req *lrpb.Move) (*lrpb.MoveRe
 	}
 
 	return &lrpb.MoveResponse{Status: lrpb.MoveResponse_SUCCESS}, nil
+}
+
+func (s *Server) Revelio(req *lrpb.RevelioRequest, stream grpc.ServerStreamingServer[lrpb.RevelioResponse]) error {
+	X, Y := int(req.Position.X), int(req.Position.Y)
+	var cellType string
+	switch req.Type {
+	case lrpb.RevelioRequest_EMPTY:
+		cellType = "E"
+	case lrpb.RevelioRequest_COIN:
+		cellType = "C"
+
+	case lrpb.RevelioRequest_WALL:
+		cellType = "W"
+	}
+	fmt.Printf("revelio req for  %v, %v, %v", X, Y, cellType)
+	for i := -1; i <= 1; i++ {
+		for j := -1; j <= 1; j++ {
+			newX, newY := X+i, Y+j
+			if newX >= 0 && newX < s.N && newY >= 0 && newY < s.M {
+				if s.Grid[newY][newX] == cellType {
+					// fmt.Printf("sending %v %v\n", newX, newY)
+					response := &lrpb.RevelioResponse{
+						Position: &lrpb.Position{
+							X: int32(newX),
+							Y: int32(newY),
+						},
+					}
+					if err := stream.Send(response); err != nil {
+						return err
+					}
+				}
+			}
+		}
+	}
+
+	return nil
 }

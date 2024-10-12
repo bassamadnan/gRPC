@@ -4,8 +4,6 @@ import (
 	"fmt"
 	"log"
 	"math"
-	"os"
-	"os/exec"
 	"strings"
 
 	lrpb "labyrinth/pkg/proto"
@@ -79,10 +77,10 @@ func startGame(client *utils.Client, grid [][]string) {
 			client.HandleMove(char, grid)
 		case '1':
 			var x, y int
-			var spellType string
+			var cellType string
 			fmt.Print("Enter x y type: ")
-			fmt.Scanf("%d %d %s", &x, &y, &spellType)
-			fmt.Printf("Entered x :%v,  y: %v,  type: %v \n ", x, y, spellType)
+			fmt.Scanf("%d %d %s", &x, &y, &cellType)
+			client.Revelio(x, y, cellType, grid)
 		case '2':
 			var x, y int
 			fmt.Print("Enter x y: ")
@@ -106,9 +104,9 @@ func generateHiddenGrid(M, N int) [][]string {
 }
 
 func printTablesSideBySide(grid [][]string, client *utils.Client) {
-	cmd := exec.Command("clear") //Linux example, its tested
-	cmd.Stdout = os.Stdout
-	cmd.Run()
+	// cmd := exec.Command("clear") //Linux example, its tested
+	// cmd.Stdout = os.Stdout
+	// cmd.Run()
 	for i := 0; i < 15; i++ {
 		fmt.Println()
 	}

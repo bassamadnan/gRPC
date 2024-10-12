@@ -3,6 +3,7 @@ package utils
 import (
 	"context"
 	"errors"
+	"io"
 	lrpb "labyrinth/pkg/proto"
 	"log"
 	"time"
@@ -119,5 +120,41 @@ func (c *Client) HandleMove(char rune, grid [][]string) {
 		if wallX >= 0 && wallX < len(grid[0]) && wallY >= 0 && wallY < len(grid) {
 			grid[wallY][wallX] = "W"
 		}
+	}
+}
+
+func (c *Client) Revelio(X int, Y int, cellType string, grid [][]string) {
+	ctx, cancel := context.WithTimeout(context.Background(), 50*time.Second)
+	defer cancel()
+	var reqType lrpb.RevelioRequest_Tile
+	switch cellType {
+	case "E":
+		reqType = lrpb.RevelioRequest_EMPTY
+	case "W":
+		reqType = lrpb.RevelioRequest_WALL
+	case "C":
+		reqType = lrpb.RevelioRequest_COIN
+	}
+	stream, err := c.Client.Revelio(ctx, &lrpb.RevelioRequest{
+		Position: &lrpb.Position{
+			X: int32(X),
+			Y: int32(Y),
+		},
+		Type: reqType,
+	})
+	if err != nil {
+		log.Fatalf("revelio error %v\n", err)
+	}
+	for {
+		response, err := stream.Recv()
+		if err == io.EOF {
+			break
+		}
+		if err != nil {
+			log.Fatalf("%v.revelio(_) = _, %v", c, err)
+		}
+		x, y := int(response.Position.X), int(response.Position.Y)
+		// log.Printf("recieved for %v, %v\n", x, y)
+		grid[y][x] = cellType
 	}
 }
