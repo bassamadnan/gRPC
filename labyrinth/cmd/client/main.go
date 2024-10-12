@@ -46,6 +46,7 @@ func main() {
 	grid[M-1][N-1] = G
 
 	startGame(&client, grid)
+	fmt.Printf("Game over- result : %v\n", client.Status)
 }
 
 func startGame(client *utils.Client, grid [][]string) {
@@ -57,7 +58,9 @@ func startGame(client *utils.Client, grid [][]string) {
 	for {
 		grid[client.Y][client.X] = P
 		printTablesSideBySide(grid, client)
-
+		if client.Status == "VICTORY" || client.Status == "DEATH" {
+			return
+		}
 		char, key, err := keyboard.GetKey()
 		if err != nil {
 			log.Fatal(err)
@@ -85,7 +88,7 @@ func startGame(client *utils.Client, grid [][]string) {
 			fmt.Printf("Entered x :%v,  y: %v\n ", x, y)
 		}
 
-		client.GetPlayerStatus() // Update client status after each action
+		client.GetPlayerStatus()
 	}
 }
 
@@ -101,6 +104,9 @@ func generateHiddenGrid(M, N int) [][]string {
 }
 
 func printTablesSideBySide(grid [][]string, client *utils.Client) {
+	for i := 0; i < 15; i++ {
+		fmt.Println()
+	}
 	tGrid := table.NewWriter()
 
 	for _, row := range grid {
@@ -156,6 +162,9 @@ func printTablesSideBySide(grid [][]string, client *utils.Client) {
 	}
 	for i := 0; i < maxLines; i++ {
 		fmt.Printf("%-80s %s\n", gridLines[i], statusLines[i])
+	}
+	for i := 0; i < 15; i++ {
+		fmt.Println()
 	}
 }
 
