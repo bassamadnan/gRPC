@@ -1,0 +1,10 @@
+9,9
+P,C,C,E,E,E,W,E,E
+W,E,C,W,W,C,E,C,C
+W,C,E,E,W,E,C,C,E
+E,W,W,C,W,E,E,W,W
+C,E,E,W,W,C,C,W,W
+E,C,W,C,W,E,E,C,W
+E,C,E,W,W,C,E,C,W
+E,C,C,W,C,E,C,E,E
+E,E,W,C,E,E,W,W,G
