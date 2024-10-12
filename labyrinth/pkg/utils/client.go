@@ -2,6 +2,7 @@ package utils
 
 import (
 	"context"
+	"errors"
 	lrpb "labyrinth/pkg/proto"
 	"log"
 	"time"
@@ -42,7 +43,7 @@ func (c *Client) GetPlayerStatus() (int, int, int, int, int) {
 	return c.Score, c.Health, c.X, c.Y, c.Spells
 }
 
-func (c *Client) RegisterMove(move rune) {
+func (c *Client) RegisterMove(move rune) (bool, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
@@ -59,7 +60,7 @@ func (c *Client) RegisterMove(move rune) {
 		direction = lrpb.Move_RIGHT
 	default:
 		log.Printf("Invalid move: %c", move)
-		return
+		return false, errors.New("invalid move error")
 	}
 
 	moveRequest := &lrpb.Move{
@@ -69,19 +70,54 @@ func (c *Client) RegisterMove(move rune) {
 	resp, err := c.Client.RegisterMove(ctx, moveRequest)
 	if err != nil {
 		log.Printf("Error registering move: %v", err)
-		return
+		return false, err
 	}
+
+	var wall bool
+
 	switch resp.Status {
 	case lrpb.MoveResponse_SUCCESS:
 		c.Status = "SUCCESS"
 	case lrpb.MoveResponse_FAILURE:
 		c.Status = "FAILURE"
+		wall = resp.Wall
 	case lrpb.MoveResponse_VICTORY:
 		c.Status = "VICTORY"
 	case lrpb.MoveResponse_DEATH:
 		c.Status = "DEATH"
 	default:
 		log.Fatalf("Invalid move: %c", move)
+		return false, errors.New("invalid move error")
+	}
+	return wall, nil
+}
+
+func (c *Client) HandleMove(char rune, grid [][]string) {
+	currX, currY := c.X, c.Y
+	wall, err := c.RegisterMove(char)
+	if err != nil {
+		log.Printf("Error at register move: %v\n", err)
 		return
+	}
+
+	if c.Status == "SUCCESS" || c.Status == "VICTORY" {
+		grid[currY][currX] = " "
+	}
+
+	if wall {
+		wallX, wallY := c.X, c.Y
+		switch char {
+		case 'w':
+			wallY--
+		case 'a':
+			wallX--
+		case 's':
+			wallY++
+		case 'd':
+			wallX++
+		}
+		if wallX >= 0 && wallX < len(grid[0]) && wallY >= 0 && wallY < len(grid) {
+			grid[wallY][wallX] = "W"
+		}
 	}
 }

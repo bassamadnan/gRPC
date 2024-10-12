@@ -55,6 +55,7 @@ func startGame(client *utils.Client, grid [][]string) {
 	defer keyboard.Close()
 
 	for {
+		grid[client.Y][client.X] = P
 		printTablesSideBySide(grid, client)
 
 		char, key, err := keyboard.GetKey()
@@ -70,7 +71,7 @@ func startGame(client *utils.Client, grid [][]string) {
 
 		switch char {
 		case 'w', 'a', 's', 'd':
-			client.RegisterMove(char)
+			client.HandleMove(char, grid)
 		case '1':
 			var x, y int
 			var spellType string
@@ -84,8 +85,7 @@ func startGame(client *utils.Client, grid [][]string) {
 			fmt.Printf("Entered x :%v,  y: %v\n ", x, y)
 		}
 
-		client.GetPlayerStatus()     // Update client status after each action
-		grid[client.Y][client.X] = P // Update player position on grid
+		client.GetPlayerStatus() // Update client status after each action
 	}
 }
 

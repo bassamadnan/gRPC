@@ -56,7 +56,7 @@ func (s *Server) RegisterMove(ctx context.Context, req *lrpb.Move) (*lrpb.MoveRe
 		if s.Health == 0 {
 			status = lrpb.MoveResponse_DEATH
 		}
-		return &lrpb.MoveResponse{Status: status}, nil
+		return &lrpb.MoveResponse{Status: status, Wall: true}, nil
 	}
 
 	newX, newY, coinCollected := UpdatePlayerPosition(direction, s.X, s.Y, s.Grid)
@@ -64,7 +64,7 @@ func (s *Server) RegisterMove(ctx context.Context, req *lrpb.Move) (*lrpb.MoveRe
 	fmt.Printf("Player sucessfuly moved to :%v , %v", newX, newY)
 	if coinCollected {
 		s.Score++
-		return &lrpb.MoveResponse{Status: lrpb.MoveResponse_SUCCESS, Coin: true}, nil
+		return &lrpb.MoveResponse{Status: lrpb.MoveResponse_SUCCESS}, nil
 	}
 
 	if s.Grid[newY][newX] == "G" {

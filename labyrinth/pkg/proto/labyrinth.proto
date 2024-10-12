@@ -50,7 +50,7 @@ message MoveResponse{
         DEATH = 3;
     }
     Status status = 1;
-    bool coin = 2; // did grid contain a coin? No idea why this isnt there in requiremnets.
+    bool wall = 2; // was failure due to wall?
 }
 
 message RevelioRequest{
