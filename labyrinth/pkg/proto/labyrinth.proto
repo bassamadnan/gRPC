@@ -3,7 +3,7 @@ package labyrinth;
 
 option go_package="pkg/proto;lrpb";
 
-service KNN {
+service LabyrinthService {
 
     rpc GetLabyrinthInfo(Empty) returns (LabyrinthInfo) {}
     rpc GetPlayerStatus(Empty) returns (PlayerStatus) {}
@@ -33,7 +33,13 @@ message PlayerStatus {
 }
 
 message Move{
-    string direction = 1;
+    enum Direction{
+        UP = 0;
+        DOWN = 1;
+        LEFT = 2;
+        RIGHT = 3;
+    }
+    Direction direction = 1;
 }
 
 message MoveResponse{

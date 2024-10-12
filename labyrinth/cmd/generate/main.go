@@ -15,7 +15,7 @@ const (
 )
 
 func main() {
-	M, N := 9, 9
+	M, N := 5, 9
 
 	grid := generateRandomGrid(M, N)
 	grid[0][0] = P
