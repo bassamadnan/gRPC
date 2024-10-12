@@ -2,16 +2,20 @@ package main
 
 import (
 	"fmt"
+	"log"
 	"math"
-	"math/rand"
 	"strings"
-	"time"
 
+	lrpb "labyrinth/pkg/proto"
+	utils "labyrinth/pkg/utils"
+
+	"github.com/eiannone/keyboard"
 	"github.com/jedib0t/go-pretty/v6/table"
 	"github.com/jedib0t/go-pretty/v6/text"
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials/insecure"
 )
 
-// Table characters
 const (
 	H = "H" // Hidden, no color
 	W = "W" // Wall, red color
@@ -22,44 +26,81 @@ const (
 )
 
 func main() {
-	// Static size for now, but can be taken as input
-	M, N := 18, 18
+	BASE_SERVER_ADDR := "localhost:5050"
+	opts := []grpc.DialOption{grpc.WithTransportCredentials(insecure.NewCredentials())}
+	conn, err := grpc.NewClient(BASE_SERVER_ADDR, opts...)
+	if err != nil {
+		log.Fatalf("conn failed %v", err)
+	}
+	defer conn.Close()
+	client := utils.Client{
+		Client: lrpb.NewLabyrinthServiceClient(conn),
+		Status: "-",
+	}
 
-	// Create the grid
-	grid := generateRandomGrid(M, N)
+	M, N := client.GetLabyrinthInfo()
+	client.GetPlayerStatus()
 
-	// Ensure P (player) at top-left and G (goal) at bottom-right
-	grid[0][0] = P
+	grid := generateHiddenGrid(M, N)
+	grid[client.Y][client.X] = P
 	grid[M-1][N-1] = G
 
-	// Print both tables side by side: grid and player status
-	printTablesSideBySide(grid, M, N)
+	startGame(&client, grid)
 }
 
-// generateRandomGrid creates an MxN grid with random characters (H, W, C, E)
-func generateRandomGrid(M, N int) [][]string {
-	rand.Seed(time.Now().UnixNano())
+func startGame(client *utils.Client, grid [][]string) {
+	if err := keyboard.Open(); err != nil {
+		log.Fatal(err)
+	}
+	defer keyboard.Close()
 
+	for {
+		printTablesSideBySide(grid, client)
+
+		char, key, err := keyboard.GetKey()
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		fmt.Printf("You pressed: %c\n", char)
+
+		if key == keyboard.KeyEsc || char == 'q' {
+			break
+		}
+
+		switch char {
+		case 'w', 'a', 's', 'd':
+			client.RegisterMove(char)
+		case '1':
+			var x, y int
+			var spellType string
+			fmt.Print("Enter x y type: ")
+			fmt.Scanf("%d %d %s", &x, &y, &spellType)
+			fmt.Printf("Entered x :%v,  y: %v,  type: %v \n ", x, y, spellType)
+		case '2':
+			var x, y int
+			fmt.Print("Enter x y: ")
+			fmt.Scanf("%d %d", &x, &y)
+			fmt.Printf("Entered x :%v,  y: %v\n ", x, y)
+		}
+
+		client.GetPlayerStatus()     // Update client status after each action
+		grid[client.Y][client.X] = P // Update player position on grid
+	}
+}
+
+func generateHiddenGrid(M, N int) [][]string {
 	grid := make([][]string, M)
 	for i := range grid {
 		grid[i] = make([]string, N)
 		for j := range grid[i] {
-			// Randomly assign H, W, C, or E (empty)
-			grid[i][j] = getRandomCell()
+			grid[i][j] = H
 		}
 	}
 	return grid
 }
 
-// getRandomCell returns a random cell character (H, W, C, or E)
-func getRandomCell() string {
-	options := []string{H, W, C, E}
-	return options[rand.Intn(len(options))]
-}
-
-// printTablesSideBySide prints both the grid and the status table side by side
-func printTablesSideBySide(grid [][]string, M, N int) {
-	// Create the grid table
+func printTablesSideBySide(grid [][]string, client *utils.Client) {
 	tGrid := table.NewWriter()
 
 	for _, row := range grid {
@@ -70,8 +111,6 @@ func printTablesSideBySide(grid [][]string, M, N int) {
 		}
 		tGrid.AppendRow(tableRow)
 	}
-
-	// Customize table style for the grid
 	tGrid.SetStyle(table.Style{
 		Box: table.StyleBoxBold,
 		Color: table.ColorOptions{
@@ -85,22 +124,15 @@ func printTablesSideBySide(grid [][]string, M, N int) {
 		},
 	})
 
-	// Create the status table
 	tStatus := table.NewWriter()
-	health := rand.Intn(100) // Random health between 0-100
-	x := rand.Intn(M)        // Random X between 0 and M-1
-	y := rand.Intn(N)        // Random Y between 0 and N-1
-	move := "UP"             // Default move
-	status := "SUCCESS"      // Status is always "SUCCESS"
 
-	// Append status rows
-	tStatus.AppendRow(table.Row{"Health", health})
-	tStatus.AppendRow(table.Row{"X", x})
-	tStatus.AppendRow(table.Row{"Y", y})
-	tStatus.AppendRow(table.Row{"Move", move}) // Added Move row
-	tStatus.AppendRow(table.Row{"Status", status})
+	tStatus.AppendRow(table.Row{"Health", client.Health})
+	tStatus.AppendRow(table.Row{"X", client.X})
+	tStatus.AppendRow(table.Row{"Y", client.Y})
+	tStatus.AppendRow(table.Row{"Score", client.Score})
+	tStatus.AppendRow(table.Row{"Spells", client.Spells})
+	tStatus.AppendRow(table.Row{"Status", client.Status})
 
-	// Customize the style for the status table
 	tStatus.SetStyle(table.Style{
 		Box: table.StyleBoxLight,
 		Color: table.ColorOptions{
@@ -112,39 +144,30 @@ func printTablesSideBySide(grid [][]string, M, N int) {
 		},
 	})
 
-	// Render both tables to string slices (line by line)
 	gridLines := strings.Split(tGrid.Render(), "\n")
 	statusLines := strings.Split(tStatus.Render(), "\n")
 
-	// Ensure both tables have the same number of lines
 	maxLines := int(math.Max(float64(len(gridLines)), float64(len(statusLines))))
-
-	// Append empty lines to the shorter table
 	for len(gridLines) < maxLines {
 		gridLines = append(gridLines, "")
 	}
 	for len(statusLines) < maxLines {
 		statusLines = append(statusLines, "")
 	}
-
-	// Print both tables side by side
 	for i := 0; i < maxLines; i++ {
 		fmt.Printf("%-80s %s\n", gridLines[i], statusLines[i])
 	}
 }
 
-// colorizeCell adds color to the cell based on its character
 func colorizeCell(cell string) string {
 	switch cell {
-	case W:
-		return text.FgRed.Sprintf(W) // Wall (red)
-	case C:
-		return text.FgHiYellow.Sprintf(C) // Coin (gold)
+	case H:
+		return text.FgHiBlack.Sprintf(H) // Hidden (dark gray)
+	case P:
+		return text.FgYellow.Sprintf(P) // Player (yellow)
 	case G:
 		return text.FgBlue.Sprintf(G) // Goal (blue)
-	case P:
-		return text.FgYellow.Sprintf(P) // Player (yellow or chosen color)
 	default:
-		return cell // No color (hidden or empty)
+		return cell
 	}
 }

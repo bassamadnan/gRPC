@@ -3,6 +3,7 @@ module labyrinth
 go 1.23.1
 
 require (
+	github.com/eiannone/keyboard v0.0.0-20220611211555-0d226195f203
 	github.com/jedib0t/go-pretty/v6 v6.6.0
 	google.golang.org/grpc v1.67.1
 	google.golang.org/protobuf v1.35.1
