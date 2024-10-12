@@ -1,0 +1,69 @@
+syntax = "proto3";
+package labyrinth;
+
+option go_package="pkg/proto;lrpb";
+
+service KNN {
+
+    rpc GetLabyrinthInfo(Empty) returns (LabyrinthInfo) {}
+    rpc GetPlayerStatus(Empty) returns (PlayerStatus) {}
+
+    rpc RegisterMove(Move) returns (MoveResponse) {}
+    rpc Revelio(RevelioRequest) returns (stream RevelioResponse) {}
+    rpc Bombarda(stream BombardaRequest) returns (BombardaResponse) {}
+}
+
+message Empty {
+
+}
+message Position {
+    int32 x = 1;
+    int32 y = 2;
+}
+message LabyrinthInfo {
+    int32 height = 1;
+    int32 width = 2;
+}
+
+message PlayerStatus {
+    int32 score = 1;
+    int32 health = 2;
+    Position position = 3;
+    int32 spells = 4; // remaining spells
+}
+
+message Move{
+    string direction = 1;
+}
+
+message MoveResponse{
+    enum Status{
+        SUCCESS = 0;
+        FAILURE = 1;
+        VICTORY = 2;
+        DEATH = 3;
+    }
+    Status status = 1;
+}
+
+message RevelioRequest{
+    enum Tile{
+        EMPTY = 0;
+        COIN = 1;
+        WALL = 2;
+    }
+    Position position = 1;
+    Tile type = 2;
+}
+
+message RevelioResponse{
+    Position position = 1;
+}
+
+message BombardaRequest{
+    Position position = 1;
+}
+
+message BombardaResponse{
+    bool success = 1;
+}
