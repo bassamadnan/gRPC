@@ -2,7 +2,7 @@ package main
 
 import (
 	"context"
-	mpb "docs/pkg/proto/message"
+	dpb "docs/pkg/proto/docs"
 	"fmt"
 	"log"
 	"net"
@@ -11,19 +11,25 @@ import (
 )
 
 type Server struct {
-	mpb.UnimplementedMessageServiceServer
+	dpb.UnsafeDocsServiceServer
 }
 
-// SendMessage(context.Context, *Message) (*Message, error)
+// SendMessage(context.Context, *Message) (*MessageResponse, error)
 
-func (s *Server) SendMessage(ctx context.Context, req *mpb.Message) (*mpb.Message, error) {
-	body := req.Body
-	fmt.Printf("recieved from %v\n", body)
-	return &mpb.Message{
-		Body: fmt.Sprintf("server: Hi %v!", body),
+func (s *Server) SendMessage(ctx context.Context, msg *dpb.Message) (*dpb.MessageResponse, error) {
+	fmt.Printf("\nReceived msg: {\n"+
+		"  Document: %v, "+
+		"  Text: %v,\n"+
+		"  Username: %v,"+
+		"  MessageType: %v,"+
+		"  Operation: %v"+
+		"}\n",
+		msg.Document, msg.Text, msg.Username, msg.MessageType, msg.Operation)
+	return &dpb.MessageResponse{
+		Success: true,
 	}, nil
-
 }
+
 func main() {
 	lis, err := net.Listen("tcp", fmt.Sprintf(":%d", 5050))
 	if err != nil {
@@ -31,7 +37,7 @@ func main() {
 	}
 
 	s := grpc.NewServer()
-	mpb.RegisterMessageServiceServer(s, &Server{})
+	dpb.RegisterDocsServiceServer(s, &Server{})
 	if err := s.Serve(lis); err != nil {
 		log.Fatalf("failed to serve: %v", err)
 	}

@@ -1,0 +1,55 @@
+syntax = "proto3";
+package docs;
+
+option go_package="pkg/proto/docs;dpb";
+
+service DocsService {
+    rpc SendMessage(Message) returns (MessageResponse) {}
+}
+
+
+message Operation{
+    enum Type{
+        INSERT = 0;
+        DELETE = 1;
+    }
+    Type operationType = 1;
+    int32 position = 2;
+    string value = 3;
+}
+
+message Message{
+    enum Type{
+        DOC_SYNC = 0;
+        DOC_REQ = 1;
+        SITE_ID = 2;
+        JOIN = 3;
+        USERS = 4;
+        OPERATION = 5;
+    }
+    Type messageType = 1;
+    string id = 2; // ID represents the client's UUID.
+    string username = 3;
+    // Text represents the body of the message. This is being used for joining messages, the siteID, and the list of active users.
+    string text = 4;
+    // Operation represents the CRDT operation.
+    Operation operation = 5;
+    // Document represents the client's document.
+    //  This is not used frequently, and should be only used when necessary, due to the large size of documents.
+    Document document = 6;
+}
+
+message Document {
+    repeated Document document = 1;
+}
+message Character{
+    string id = 1;
+    bool visible = 2;
+    string value = 3;
+    string idPrevious = 4;
+    string idNext = 5;
+}
+
+message MessageResponse{
+    bool success = 1;
+}

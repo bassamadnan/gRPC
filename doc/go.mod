@@ -6,6 +6,7 @@ require (
 	github.com/google/go-cmp v0.6.0
 	github.com/mattn/go-runewidth v0.0.16
 	github.com/nsf/termbox-go v1.1.1
+	github.com/sirupsen/logrus v1.9.3
 	google.golang.org/grpc v1.67.1
 	google.golang.org/protobuf v1.35.1
 )
