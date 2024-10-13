@@ -27,22 +27,21 @@ func initUI(conf UIConfig) error {
 	e.SetText(crdt.Content(doc))
 	e.SendDraw()
 
-	go drawLoop(e)
+	go drawLoop()
 
-	return mainLoop(e)
+	return mainLoop()
 }
 
 // mainLoop is the main update loop for the UI.
-func mainLoop(e *editor.Editor) error {
+func mainLoop() error {
 	termboxChan := getTermboxChan()
 
 	for {
 		select {
 		case ev := <-termboxChan:
-			if !handleTermboxEvent(ev, e) {
-				return nil // Exit the application
+			if !handleTermboxEvent(ev) {
+				return nil // exit the application
 			}
-			e.SendDraw()
 		}
 	}
 }

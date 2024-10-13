@@ -1,7 +1,6 @@
 package main
 
 import (
-	"docs/cmd/client/editor"
 	dpb "docs/pkg/proto/docs"
 	"log"
 
@@ -27,7 +26,7 @@ func getTermboxChan() chan termbox.Event {
 }
 
 // handleTermboxEvent handles key input by updating the editor state.
-func handleTermboxEvent(ev termbox.Event, e *editor.Editor) bool {
+func handleTermboxEvent(ev termbox.Event) bool {
 	switch ev.Type {
 	case termbox.EventKey:
 		switch ev.Key {
@@ -69,9 +68,8 @@ func handleTermboxEvent(ev termbox.Event, e *editor.Editor) bool {
 				performLocalOperation(OperationInsert, ev)
 			}
 		}
-	case termbox.EventResize:
-		e.SetSize(termbox.Size())
 	}
+	e.SendDraw()
 	return true
 }
 
@@ -112,7 +110,7 @@ func performLocalOperation(opType int, ev termbox.Event) {
 
 }
 
-func drawLoop(e *editor.Editor) {
+func drawLoop() {
 	for {
 		<-e.DrawChan
 		e.Draw()
