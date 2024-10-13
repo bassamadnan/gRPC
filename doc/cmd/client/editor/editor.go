@@ -477,3 +477,22 @@ func (e *Editor) calcXY(index int) (int, int) {
 	}
 	return x, y
 }
+
+func (e *Editor) InsertRune(r rune) {
+	e.mu.Lock()
+	defer e.mu.Unlock()
+	if e.Cursor > len(e.Text) {
+		e.Cursor = len(e.Text)
+	}
+	e.Text = append(e.Text[:e.Cursor], append([]rune{r}, e.Text[e.Cursor:]...)...)
+	e.Cursor++
+}
+
+func (e *Editor) DeleteRuneBeforeCursor() {
+	e.mu.Lock()
+	defer e.mu.Unlock()
+	if e.Cursor > 0 && e.Cursor <= len(e.Text) {
+		e.Text = append(e.Text[:e.Cursor-1], e.Text[e.Cursor:]...)
+		e.Cursor--
+	}
+}
