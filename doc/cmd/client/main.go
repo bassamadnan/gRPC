@@ -5,6 +5,9 @@ import (
 	"docs/cmd/client/editor"
 	"docs/crdt"
 	dpb "docs/pkg/proto/docs"
+	"docs/pkg/utils"
+	"flag"
+	"fmt"
 	"log"
 	"time"
 
@@ -36,7 +39,33 @@ func (c *Client) sendMessage(message *dpb.Message) error {
 	return nil
 }
 
+func (c *Client) registerClient() error {
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+	message := &dpb.Message{Username: c.Name}
+	docRecieved, err := c.Client.RegisterClient(ctx, message)
+	if err != nil {
+		// log.Fatalf("error in getting servers %v\n", err)
+		return nil
+	}
+	doc = *utils.GetDocument(docRecieved)
+	e.SetText(crdt.Content(doc))
+	return nil
+}
+func (c *Client) sendError() error {
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+	_, err := c.Client.SendError(ctx, &dpb.Message{Username: c.Name})
+	if err != nil {
+		log.Fatalf("error in getting servers %v\n", err)
+		return nil
+	}
+	return nil
+}
+
 func main() {
+	id := flag.Int("id", 1, "client id")
+	flag.Parse()
 	BASE_SERVER_ADDR := "localhost:5050"
 	opts := []grpc.DialOption{grpc.WithTransportCredentials(insecure.NewCredentials())}
 	conn, err := grpc.NewClient(BASE_SERVER_ADDR, opts...)
@@ -47,13 +76,14 @@ func main() {
 	// crdt.IsCRDT(&doc)
 	client = Client{
 		Client: dpb.NewDocsServiceClient(conn),
-		Name:   "client1",
+		Name:   fmt.Sprintf("client%v", *id),
 	}
 	uiConfig := UIConfig{
 		EditorConfig: editor.EditorConfig{
 			ScrollEnabled: true,
 		},
 	}
+	client.registerClient()
 	err2 := initUI(uiConfig)
 	if err2 != nil {
 		log.Fatalf("init ui error %v\n", err)

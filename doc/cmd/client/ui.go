@@ -24,6 +24,7 @@ func initUI(conf UIConfig) error {
 
 	e = editor.NewEditor(conf.EditorConfig)
 	e.SetSize(termbox.Size())
+	// client.sendError()
 	e.SetText(crdt.Content(doc))
 	e.SendDraw()
 

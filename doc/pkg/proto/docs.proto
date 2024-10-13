@@ -5,8 +5,13 @@ option go_package="pkg/proto/docs;dpb";
 
 service DocsService {
     rpc SendMessage(Message) returns (MessageResponse) {}
+    rpc RegisterClient(Message) returns (Document) {}
+    rpc SendError(Message) returns (Empty) {}
 }
 
+message Empty{
+
+}
 
 message Operation{
     enum Type{
@@ -40,7 +45,7 @@ message Message{
 }
 
 message Document {
-    repeated Document document = 1;
+    repeated Character document = 1;
 }
 message Character{
     string id = 1;

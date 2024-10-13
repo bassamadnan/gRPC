@@ -2,6 +2,7 @@ package main
 
 import (
 	dpb "docs/pkg/proto/docs"
+	utils "docs/pkg/utils"
 	"log"
 
 	"github.com/nsf/termbox-go"
@@ -89,6 +90,8 @@ func performLocalOperation(opType int, ev termbox.Event) {
 		msg = &dpb.Message{
 			MessageType: dpb.Message_OPERATION,
 			Operation:   &dpb.Operation{OperationType: dpb.Operation_INSERT, Position: int32(e.Cursor), Value: ch},
+			Text:        text,
+			Document:    utils.GetDocumentProto(doc),
 		}
 	case OperationDelete:
 		if e.Cursor-1 < 0 {
@@ -99,6 +102,8 @@ func performLocalOperation(opType int, ev termbox.Event) {
 		msg = &dpb.Message{
 			MessageType: dpb.Message_OPERATION,
 			Operation:   &dpb.Operation{OperationType: dpb.Operation_DELETE, Position: int32(e.Cursor)},
+			Text:        text,
+			Document:    utils.GetDocumentProto(doc),
 		}
 		e.MoveCursor(-1, 0)
 	}
