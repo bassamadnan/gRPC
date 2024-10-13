@@ -30,7 +30,7 @@ proto.docs = require('./docs_pb.js');
  * @struct
  * @final
  */
-proto.docs.GreeterClient =
+proto.docs.DocumentServiceClient =
     function(hostname, credentials, options) {
   if (!options) options = {};
   options.format = 'text';
@@ -56,7 +56,7 @@ proto.docs.GreeterClient =
  * @struct
  * @final
  */
-proto.docs.GreeterPromiseClient =
+proto.docs.DocumentServicePromiseClient =
     function(hostname, credentials, options) {
   if (!options) options = {};
   options.format = 'text';
@@ -80,8 +80,8 @@ proto.docs.GreeterPromiseClient =
  *   !proto.docs.HelloRequest,
  *   !proto.docs.HelloReply>}
  */
-const methodDescriptor_Greeter_SayHello = new grpc.web.MethodDescriptor(
-  '/docs.Greeter/SayHello',
+const methodDescriptor_DocumentService_SayHello = new grpc.web.MethodDescriptor(
+  '/docs.DocumentService/SayHello',
   grpc.web.MethodType.UNARY,
   proto.docs.HelloRequest,
   proto.docs.HelloReply,
@@ -106,13 +106,13 @@ const methodDescriptor_Greeter_SayHello = new grpc.web.MethodDescriptor(
  * @return {!grpc.web.ClientReadableStream<!proto.docs.HelloReply>|undefined}
  *     The XHR Node Readable Stream
  */
-proto.docs.GreeterClient.prototype.sayHello =
+proto.docs.DocumentServiceClient.prototype.sayHello =
     function(request, metadata, callback) {
   return this.client_.rpcCall(this.hostname_ +
-      '/docs.Greeter/SayHello',
+      '/docs.DocumentService/SayHello',
       request,
       metadata || {},
-      methodDescriptor_Greeter_SayHello,
+      methodDescriptor_DocumentService_SayHello,
       callback);
 };
 
@@ -125,13 +125,13 @@ proto.docs.GreeterClient.prototype.sayHello =
  * @return {!Promise<!proto.docs.HelloReply>}
  *     Promise that resolves to the response
  */
-proto.docs.GreeterPromiseClient.prototype.sayHello =
+proto.docs.DocumentServicePromiseClient.prototype.sayHello =
     function(request, metadata) {
   return this.client_.unaryCall(this.hostname_ +
-      '/docs.Greeter/SayHello',
+      '/docs.DocumentService/SayHello',
       request,
       metadata || {},
-      methodDescriptor_Greeter_SayHello);
+      methodDescriptor_DocumentService_SayHello);
 };
 
 

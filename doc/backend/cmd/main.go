@@ -4,49 +4,67 @@ import (
 	"context"
 	dpb "docsbackend/proto"
 	"fmt"
+	"io"
 	"log"
-	"net/http"
+	"net"
+	"time"
 
-	"github.com/improbable-eng/grpc-web/go/grpcweb"
 	"google.golang.org/grpc"
 )
 
 type Server struct {
-	dpb.UnimplementedGreeterServer
+	dpb.UnimplementedDocumentServiceServer
+	clients map[string]bool
 }
 
+func (s *Server) SendRecvNumbers(stream grpc.BidiStreamingServer[dpb.Number, dpb.Number]) error {
+	fmt.Print("called\n")
+	recvNumbers := make([]int, 0, 5)
+	sentNumbers := []int{7, 3, 1, 3, 1}
+
+	for {
+		in, err := stream.Recv()
+		if err == io.EOF {
+			break
+		}
+		if err != nil {
+			return err
+		}
+		recvNumbers = append(recvNumbers, int(in.Number))
+	}
+
+	for _, num := range sentNumbers {
+		time.Sleep(1 * time.Second)
+		fmt.Printf("sent %v\n", num)
+		if err := stream.Send(&dpb.Number{Number: int32(num)}); err != nil {
+			return err
+		}
+	}
+
+	fmt.Print(recvNumbers)
+	return nil
+}
 func (s *Server) SayHello(ctx context.Context, req *dpb.HelloRequest) (*dpb.HelloReply, error) {
 	name := req.Name
-	fmt.Printf("recieved request from %v\n", name)
+	fmt.Printf("Received request from %v\n", name)
 	response := fmt.Sprintf("server: hello %s", name)
 	return &dpb.HelloReply{Message: response}, nil
 }
 
 func main() {
-	grpcServer := grpc.NewServer()
-	dpb.RegisterGreeterServer(grpcServer, &Server{})
-
-	wrappedGrpc := grpcweb.WrapServer(grpcServer,
-		grpcweb.WithOriginFunc(func(origin string) bool {
-			return true // cors
-		}))
-
-	handler := http.HandlerFunc(func(resp http.ResponseWriter, req *http.Request) {
-		resp.Header().Set("Access-Control-Allow-Origin", "*")
-		resp.Header().Set("Access-Control-Allow-Headers", "Content-Type,x-grpc-web,x-user-agent")
-		if req.Method == "OPTIONS" {
-			return
-		}
-		wrappedGrpc.ServeHTTP(resp, req)
-	})
-
-	httpServer := &http.Server{
-		Addr:    ":5050",
-		Handler: handler,
+	// Listen on port 5050
+	lis, err := net.Listen("tcp", ":5050")
+	if err != nil {
+		log.Fatalf("Failed to listen: %v", err)
 	}
 
-	log.Printf("hosting gRPC-Web server on :5050")
-	if err := httpServer.ListenAndServe(); err != nil {
-		log.Fatalf("failed to serve: %v", err)
+	grpcServer := grpc.NewServer()
+	dpb.RegisterDocumentServiceServer(grpcServer, &Server{
+		clients: make(map[string]bool),
+	})
+
+	log.Printf("Starting standard gRPC server on :5050")
+	if err := grpcServer.Serve(lis); err != nil {
+		log.Fatalf("Failed to serve: %v", err)
 	}
 }

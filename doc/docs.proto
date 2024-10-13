@@ -4,9 +4,11 @@ package docs;
 
 option go_package = "docsbackend/proto; dpb";
 
-service Greeter {
-  rpc SayHello (HelloRequest) returns (HelloReply);
+service DocumentService {
+  rpc SayHello (HelloRequest) returns (HelloReply) {}
+  rpc SendRecvNumbers (stream Number) returns (stream Number) {}
 }
+
 
 message HelloRequest {
   string name = 1;
@@ -14,4 +16,7 @@ message HelloRequest {
 
 message HelloReply {
   string message = 1;
+}
+message Number {
+    int32 number = 1;
 }

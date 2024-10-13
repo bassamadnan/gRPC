@@ -19,103 +19,136 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
-	Greeter_SayHello_FullMethodName = "/docs.Greeter/SayHello"
+	DocumentService_SayHello_FullMethodName        = "/docs.DocumentService/SayHello"
+	DocumentService_SendRecvNumbers_FullMethodName = "/docs.DocumentService/SendRecvNumbers"
 )
 
-// GreeterClient is the client API for Greeter service.
+// DocumentServiceClient is the client API for DocumentService service.
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
-type GreeterClient interface {
+type DocumentServiceClient interface {
 	SayHello(ctx context.Context, in *HelloRequest, opts ...grpc.CallOption) (*HelloReply, error)
+	SendRecvNumbers(ctx context.Context, opts ...grpc.CallOption) (grpc.BidiStreamingClient[Number, Number], error)
 }
 
-type greeterClient struct {
+type documentServiceClient struct {
 	cc grpc.ClientConnInterface
 }
 
-func NewGreeterClient(cc grpc.ClientConnInterface) GreeterClient {
-	return &greeterClient{cc}
+func NewDocumentServiceClient(cc grpc.ClientConnInterface) DocumentServiceClient {
+	return &documentServiceClient{cc}
 }
 
-func (c *greeterClient) SayHello(ctx context.Context, in *HelloRequest, opts ...grpc.CallOption) (*HelloReply, error) {
+func (c *documentServiceClient) SayHello(ctx context.Context, in *HelloRequest, opts ...grpc.CallOption) (*HelloReply, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(HelloReply)
-	err := c.cc.Invoke(ctx, Greeter_SayHello_FullMethodName, in, out, cOpts...)
+	err := c.cc.Invoke(ctx, DocumentService_SayHello_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
 	return out, nil
 }
 
-// GreeterServer is the server API for Greeter service.
-// All implementations must embed UnimplementedGreeterServer
-// for forward compatibility.
-type GreeterServer interface {
-	SayHello(context.Context, *HelloRequest) (*HelloReply, error)
-	mustEmbedUnimplementedGreeterServer()
+func (c *documentServiceClient) SendRecvNumbers(ctx context.Context, opts ...grpc.CallOption) (grpc.BidiStreamingClient[Number, Number], error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	stream, err := c.cc.NewStream(ctx, &DocumentService_ServiceDesc.Streams[0], DocumentService_SendRecvNumbers_FullMethodName, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	x := &grpc.GenericClientStream[Number, Number]{ClientStream: stream}
+	return x, nil
 }
 
-// UnimplementedGreeterServer must be embedded to have
+// This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
+type DocumentService_SendRecvNumbersClient = grpc.BidiStreamingClient[Number, Number]
+
+// DocumentServiceServer is the server API for DocumentService service.
+// All implementations must embed UnimplementedDocumentServiceServer
+// for forward compatibility.
+type DocumentServiceServer interface {
+	SayHello(context.Context, *HelloRequest) (*HelloReply, error)
+	SendRecvNumbers(grpc.BidiStreamingServer[Number, Number]) error
+	mustEmbedUnimplementedDocumentServiceServer()
+}
+
+// UnimplementedDocumentServiceServer must be embedded to have
 // forward compatible implementations.
 //
 // NOTE: this should be embedded by value instead of pointer to avoid a nil
 // pointer dereference when methods are called.
-type UnimplementedGreeterServer struct{}
+type UnimplementedDocumentServiceServer struct{}
 
-func (UnimplementedGreeterServer) SayHello(context.Context, *HelloRequest) (*HelloReply, error) {
+func (UnimplementedDocumentServiceServer) SayHello(context.Context, *HelloRequest) (*HelloReply, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method SayHello not implemented")
 }
-func (UnimplementedGreeterServer) mustEmbedUnimplementedGreeterServer() {}
-func (UnimplementedGreeterServer) testEmbeddedByValue()                 {}
+func (UnimplementedDocumentServiceServer) SendRecvNumbers(grpc.BidiStreamingServer[Number, Number]) error {
+	return status.Errorf(codes.Unimplemented, "method SendRecvNumbers not implemented")
+}
+func (UnimplementedDocumentServiceServer) mustEmbedUnimplementedDocumentServiceServer() {}
+func (UnimplementedDocumentServiceServer) testEmbeddedByValue()                         {}
 
-// UnsafeGreeterServer may be embedded to opt out of forward compatibility for this service.
-// Use of this interface is not recommended, as added methods to GreeterServer will
+// UnsafeDocumentServiceServer may be embedded to opt out of forward compatibility for this service.
+// Use of this interface is not recommended, as added methods to DocumentServiceServer will
 // result in compilation errors.
-type UnsafeGreeterServer interface {
-	mustEmbedUnimplementedGreeterServer()
+type UnsafeDocumentServiceServer interface {
+	mustEmbedUnimplementedDocumentServiceServer()
 }
 
-func RegisterGreeterServer(s grpc.ServiceRegistrar, srv GreeterServer) {
-	// If the following call pancis, it indicates UnimplementedGreeterServer was
+func RegisterDocumentServiceServer(s grpc.ServiceRegistrar, srv DocumentServiceServer) {
+	// If the following call pancis, it indicates UnimplementedDocumentServiceServer was
 	// embedded by pointer and is nil.  This will cause panics if an
 	// unimplemented method is ever invoked, so we test this at initialization
 	// time to prevent it from happening at runtime later due to I/O.
 	if t, ok := srv.(interface{ testEmbeddedByValue() }); ok {
 		t.testEmbeddedByValue()
 	}
-	s.RegisterService(&Greeter_ServiceDesc, srv)
+	s.RegisterService(&DocumentService_ServiceDesc, srv)
 }
 
-func _Greeter_SayHello_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+func _DocumentService_SayHello_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(HelloRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(GreeterServer).SayHello(ctx, in)
+		return srv.(DocumentServiceServer).SayHello(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: Greeter_SayHello_FullMethodName,
+		FullMethod: DocumentService_SayHello_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(GreeterServer).SayHello(ctx, req.(*HelloRequest))
+		return srv.(DocumentServiceServer).SayHello(ctx, req.(*HelloRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
-// Greeter_ServiceDesc is the grpc.ServiceDesc for Greeter service.
+func _DocumentService_SendRecvNumbers_Handler(srv interface{}, stream grpc.ServerStream) error {
+	return srv.(DocumentServiceServer).SendRecvNumbers(&grpc.GenericServerStream[Number, Number]{ServerStream: stream})
+}
+
+// This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
+type DocumentService_SendRecvNumbersServer = grpc.BidiStreamingServer[Number, Number]
+
+// DocumentService_ServiceDesc is the grpc.ServiceDesc for DocumentService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
-var Greeter_ServiceDesc = grpc.ServiceDesc{
-	ServiceName: "docs.Greeter",
-	HandlerType: (*GreeterServer)(nil),
+var DocumentService_ServiceDesc = grpc.ServiceDesc{
+	ServiceName: "docs.DocumentService",
+	HandlerType: (*DocumentServiceServer)(nil),
 	Methods: []grpc.MethodDesc{
 		{
 			MethodName: "SayHello",
-			Handler:    _Greeter_SayHello_Handler,
+			Handler:    _DocumentService_SayHello_Handler,
 		},
 	},
-	Streams:  []grpc.StreamDesc{},
+	Streams: []grpc.StreamDesc{
+		{
+			StreamName:    "SendRecvNumbers",
+			Handler:       _DocumentService_SendRecvNumbers_Handler,
+			ServerStreams: true,
+			ClientStreams: true,
+		},
+	},
 	Metadata: "docs.proto",
 }

@@ -1,21 +1,25 @@
 import React, { useState } from 'react';
-import { DocumentServiceClient } from './proto/docs_grpc_web_pb';
 import { useNavigate } from 'react-router-dom';
 import { ClientState } from './context/DocsProvider';
 
-const client = new DocumentServiceClient('http://localhost:5050', null, null);
-
 export default function App() {
   const [inputName, setInputName] = useState('');
-  const { setName, setClient, clients, setClients } = ClientState();
+  const [greeting, setGreeting] = useState('');
+  const { setName, setClients } = ClientState();
   const navigate = useNavigate();
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    setName(inputName);
-    setClient(client);
-    setClients([...clients, inputName]);
-    navigate('/docs');
+    try {
+      const message = await window.api.sayHello(inputName);
+      setGreeting(message);
+      setName(inputName);
+      setClients(prevClients => [...prevClients, inputName]);
+      setTimeout(() => navigate('/docs')); // 1 second
+    } catch (error) {
+      console.error('gRPC Error:', error);
+      setGreeting('Error communicating with server.');
+    }
   };
 
   return (
@@ -40,6 +44,7 @@ export default function App() {
             View Document
           </button>
         </form>
+        {greeting && <p className="mt-4 text-lg text-center">{greeting}</p>}
       </div>
     </div>
   );
