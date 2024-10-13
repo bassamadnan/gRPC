@@ -18,6 +18,7 @@ type Server struct {
 
 func (s *Server) SendMessage(ctx context.Context, req *mpb.Message) (*mpb.Message, error) {
 	body := req.Body
+	fmt.Printf("recieved from %v\n", body)
 	return &mpb.Message{
 		Body: fmt.Sprintf("server: Hi %v!", body),
 	}, nil
