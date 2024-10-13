@@ -1,0 +1,63 @@
+package main
+
+import (
+	"docs/cmd/client/editor"
+	"docs/crdt"
+
+	"github.com/nsf/termbox-go"
+	"nhooyr.io/websocket"
+)
+
+type UIConfig struct {
+	EditorConfig editor.EditorConfig
+}
+
+// TUI is built using termbox-go.
+// termbox allows us to set any content to individual cells, and hence, the basic building block of the editor is a "cell".
+
+// initUI creates a new editor view and runs the main loop.
+func initUI(conn *websocket.Conn, conf UIConfig) error {
+	err := termbox.Init()
+	if err != nil {
+		return err
+	}
+	defer termbox.Close()
+
+	e = editor.NewEditor(conf.EditorConfig)
+	e.SetSize(termbox.Size())
+	e.SetText(crdt.Content(doc))
+	e.SendDraw()
+	e.IsConnected = true
+
+	go handleStatusMsg()
+
+	go drawLoop()
+
+	err = mainLoop(conn)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// mainLoop is the main update loop for the UI.
+func mainLoop(conn *websocket.Conn) error {
+	// termboxChan is used for sending and receiving termbox events.
+	termboxChan := getTermboxChan()
+
+	// msgChan is used for sending and receiving messages.
+	msgChan := getMsgChan(conn)
+
+	for {
+		select {
+		case termboxEvent := <-termboxChan:
+			err := handleTermboxEvent(termboxEvent, conn)
+			if err != nil {
+				return err
+			}
+		case msg := <-msgChan:
+			handleMsg(msg, conn)
+		}
+	}
+}
