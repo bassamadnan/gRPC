@@ -3,6 +3,7 @@ package utils
 import (
 	"context"
 	"errors"
+	"fmt"
 	"io"
 	lrpb "labyrinth/pkg/proto"
 	"log"
@@ -124,6 +125,10 @@ func (c *Client) HandleMove(char rune, grid [][]string) {
 }
 
 func (c *Client) Revelio(X int, Y int, cellType string, grid [][]string) {
+	if c.Spells == 0 {
+		println("spells over")
+		return
+	}
 	ctx, cancel := context.WithTimeout(context.Background(), 50*time.Second)
 	defer cancel()
 	var reqType lrpb.RevelioRequest_Tile
@@ -156,5 +161,50 @@ func (c *Client) Revelio(X int, Y int, cellType string, grid [][]string) {
 		x, y := int(response.Position.X), int(response.Position.Y)
 		// log.Printf("recieved for %v, %v\n", x, y)
 		grid[y][x] = cellType
+	}
+}
+
+func (c *Client) Bombarda(grid [][]string) {
+	stream, err := c.Client.Bombarda(context.Background())
+	if err != nil {
+		log.Fatalf("%v.Bombarda(_) = _, %v", c, err)
+	}
+	coords := make([][2]int, 3)
+
+	for i := 0; i < 3; i++ {
+		var x, y int
+		fmt.Printf("Enter x y for point %d: ", i+1)
+		_, err := fmt.Scanf("%d %d", &x, &y)
+		if err != nil || grid[y][x] == "P" || grid[y][x] == "G" {
+			log.Printf("err reading input: %v", err)
+			i-- // retry
+			continue
+		}
+		coords[i] = [2]int{x, y}
+	}
+
+	for _, coord := range coords {
+		err := stream.Send(&lrpb.BombardaRequest{
+			Position: &lrpb.Position{
+				X: int32(coord[0]),
+				Y: int32(coord[1]),
+			},
+		})
+		if err != nil {
+			log.Fatalf("Error sending coordinate: %v", err)
+		}
+		grid[coord[1]][coord[0]] = " " // incase we have seen it before as W
+	}
+
+	reply, err := stream.CloseAndRecv()
+	if err != nil {
+		log.Fatalf("%v.CloseAndRecv() got error %v, want %v", stream, err, nil)
+
+	}
+
+	if reply.Success {
+		fmt.Println("Bombarda spell cast successfully!")
+	} else {
+		fmt.Println("Bombarda spell failed.")
 	}
 }

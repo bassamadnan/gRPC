@@ -3,6 +3,7 @@ package utils
 import (
 	"context"
 	"fmt"
+	"io"
 	lrpb "labyrinth/pkg/proto"
 
 	"google.golang.org/grpc"
@@ -108,6 +109,27 @@ func (s *Server) Revelio(req *lrpb.RevelioRequest, stream grpc.ServerStreamingSe
 			}
 		}
 	}
-
+	s.Spells--
 	return nil
+}
+
+func (s *Server) Bombarda(stream grpc.ClientStreamingServer[lrpb.BombardaRequest, lrpb.BombardaResponse]) error {
+	for {
+		point, err := stream.Recv()
+		if err == io.EOF {
+			s.Spells--
+			PrintGridAsTable(s.Grid) // show updated table
+			return stream.SendAndClose(&lrpb.BombardaResponse{Success: true})
+		}
+		if err != nil {
+			return err
+		}
+		x, y := int(point.Position.X), int(point.Position.Y)
+
+		if x >= 0 && x < s.N && y >= 0 && y < s.M {
+			s.Grid[y][x] = "E"
+		} else {
+			return stream.SendAndClose(&lrpb.BombardaResponse{Success: false})
+		}
+	}
 }
