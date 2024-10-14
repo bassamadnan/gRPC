@@ -37,3 +37,5 @@ func GetDocument(doc *dpb.Document) *crdt.Document {
 		Characters: characters,
 	}
 }
+
+// func GetMessage(msg *dpb.Message) crdt.

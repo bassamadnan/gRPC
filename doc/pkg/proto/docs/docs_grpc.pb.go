@@ -22,6 +22,7 @@ const (
 	DocsService_SendMessage_FullMethodName    = "/docs.DocsService/SendMessage"
 	DocsService_RegisterClient_FullMethodName = "/docs.DocsService/RegisterClient"
 	DocsService_SendError_FullMethodName      = "/docs.DocsService/SendError"
+	DocsService_EditDoc_FullMethodName        = "/docs.DocsService/EditDoc"
 )
 
 // DocsServiceClient is the client API for DocsService service.
@@ -31,6 +32,7 @@ type DocsServiceClient interface {
 	SendMessage(ctx context.Context, in *Message, opts ...grpc.CallOption) (*MessageResponse, error)
 	RegisterClient(ctx context.Context, in *Message, opts ...grpc.CallOption) (*Document, error)
 	SendError(ctx context.Context, in *Message, opts ...grpc.CallOption) (*Empty, error)
+	EditDoc(ctx context.Context, opts ...grpc.CallOption) (grpc.BidiStreamingClient[Message, Message], error)
 }
 
 type docsServiceClient struct {
@@ -71,6 +73,19 @@ func (c *docsServiceClient) SendError(ctx context.Context, in *Message, opts ...
 	return out, nil
 }
 
+func (c *docsServiceClient) EditDoc(ctx context.Context, opts ...grpc.CallOption) (grpc.BidiStreamingClient[Message, Message], error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	stream, err := c.cc.NewStream(ctx, &DocsService_ServiceDesc.Streams[0], DocsService_EditDoc_FullMethodName, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	x := &grpc.GenericClientStream[Message, Message]{ClientStream: stream}
+	return x, nil
+}
+
+// This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
+type DocsService_EditDocClient = grpc.BidiStreamingClient[Message, Message]
+
 // DocsServiceServer is the server API for DocsService service.
 // All implementations must embed UnimplementedDocsServiceServer
 // for forward compatibility.
@@ -78,6 +93,7 @@ type DocsServiceServer interface {
 	SendMessage(context.Context, *Message) (*MessageResponse, error)
 	RegisterClient(context.Context, *Message) (*Document, error)
 	SendError(context.Context, *Message) (*Empty, error)
+	EditDoc(grpc.BidiStreamingServer[Message, Message]) error
 	mustEmbedUnimplementedDocsServiceServer()
 }
 
@@ -96,6 +112,9 @@ func (UnimplementedDocsServiceServer) RegisterClient(context.Context, *Message) 
 }
 func (UnimplementedDocsServiceServer) SendError(context.Context, *Message) (*Empty, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method SendError not implemented")
+}
+func (UnimplementedDocsServiceServer) EditDoc(grpc.BidiStreamingServer[Message, Message]) error {
+	return status.Errorf(codes.Unimplemented, "method EditDoc not implemented")
 }
 func (UnimplementedDocsServiceServer) mustEmbedUnimplementedDocsServiceServer() {}
 func (UnimplementedDocsServiceServer) testEmbeddedByValue()                     {}
@@ -172,6 +191,13 @@ func _DocsService_SendError_Handler(srv interface{}, ctx context.Context, dec fu
 	return interceptor(ctx, in, info, handler)
 }
 
+func _DocsService_EditDoc_Handler(srv interface{}, stream grpc.ServerStream) error {
+	return srv.(DocsServiceServer).EditDoc(&grpc.GenericServerStream[Message, Message]{ServerStream: stream})
+}
+
+// This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
+type DocsService_EditDocServer = grpc.BidiStreamingServer[Message, Message]
+
 // DocsService_ServiceDesc is the grpc.ServiceDesc for DocsService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -192,6 +218,13 @@ var DocsService_ServiceDesc = grpc.ServiceDesc{
 			Handler:    _DocsService_SendError_Handler,
 		},
 	},
-	Streams:  []grpc.StreamDesc{},
+	Streams: []grpc.StreamDesc{
+		{
+			StreamName:    "EditDoc",
+			Handler:       _DocsService_EditDoc_Handler,
+			ServerStreams: true,
+			ClientStreams: true,
+		},
+	},
 	Metadata: "pkg/proto/docs.proto",
 }

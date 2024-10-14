@@ -1,6 +1,7 @@
 package main
 
 import (
+	"docs/crdt"
 	dpb "docs/pkg/proto/docs"
 	utils "docs/pkg/utils"
 	"log"
@@ -46,13 +47,6 @@ func handleTermboxEvent(ev termbox.Event) bool {
 		case termbox.KeyDelete:
 			performLocalOperation(OperationDelete, ev)
 
-		// The Tab key inserts 4 spaces to simulate a "tab".
-		case termbox.KeyTab:
-			for i := 0; i < 4; i++ {
-				ev.Ch = ' '
-				performLocalOperation(OperationInsert, ev)
-			}
-
 		// The Enter key inserts a newline character to the editor's content.
 		case termbox.KeyEnter:
 			ev.Ch = '\n'
@@ -92,6 +86,7 @@ func performLocalOperation(opType int, ev termbox.Event) {
 			Operation:   &dpb.Operation{OperationType: dpb.Operation_INSERT, Position: int32(e.Cursor), Value: ch},
 			Text:        text,
 			Document:    utils.GetDocumentProto(doc),
+			Username:    client.Name,
 		}
 	case OperationDelete:
 		if e.Cursor-1 < 0 {
@@ -104,15 +99,40 @@ func performLocalOperation(opType int, ev termbox.Event) {
 			Operation:   &dpb.Operation{OperationType: dpb.Operation_DELETE, Position: int32(e.Cursor)},
 			Text:        text,
 			Document:    utils.GetDocumentProto(doc),
+			Username:    client.Name,
 		}
 		e.MoveCursor(-1, 0)
 	}
-	err := client.sendMessage(msg)
+	// err := client.sendMessage(msg)
+	err := client.Stream.Send(msg)
 	if err != nil {
 		log.Printf("error sendmsg %v", err)
 		e.StatusChan <- "lost connection!"
 	}
 
+}
+
+func handleServerMessage(msg *dpb.Message) {
+
+	switch msg.Operation.OperationType {
+	case dpb.Operation_INSERT:
+		_, err := doc.Insert(int(msg.Operation.Position), msg.Operation.Value)
+		if err != nil {
+			client.sendError()
+			log.Fatal("send error")
+		}
+		e.SetText(crdt.Content(doc))
+		if msg.Operation.Position-1 <= int32(e.Cursor) {
+			e.MoveCursor(len(msg.Operation.Value), 0)
+		}
+	case dpb.Operation_DELETE:
+		_ = doc.Delete(int(msg.Operation.Position))
+		e.SetText(crdt.Content(doc))
+		if msg.Operation.Position-1 <= int32(e.Cursor) {
+			e.MoveCursor(-len(msg.Operation.Value), 0)
+		}
+	}
+	e.SendDraw()
 }
 
 func drawLoop() {

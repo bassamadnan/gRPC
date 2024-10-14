@@ -3,6 +3,7 @@ package main
 import (
 	"docs/cmd/client/editor"
 	"docs/crdt"
+	"log"
 
 	"github.com/nsf/termbox-go"
 )
@@ -43,6 +44,13 @@ func mainLoop() error {
 			if !handleTermboxEvent(ev) {
 				return nil // exit the application
 			}
+		case msg, ok := <-msgChan:
+			if !ok {
+				log.Fatalf("not ok server closed?")
+				return nil
+			}
+			handleServerMessage(msg)
+
 		}
 	}
 }

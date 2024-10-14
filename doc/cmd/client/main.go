@@ -19,13 +19,15 @@ import (
 type Client struct {
 	Client dpb.DocsServiceClient
 	Name   string
+	Stream dpb.DocsService_EditDocClient
 }
 
 var (
-	doc    = crdt.New()
-	e      = editor.NewEditor(editor.EditorConfig{})
-	logger = logrus.New()
-	client = Client{}
+	doc     = crdt.New()
+	e       = editor.NewEditor(editor.EditorConfig{})
+	logger  = logrus.New()
+	client  = Client{}
+	msgChan = make(chan *dpb.Message)
 )
 
 func (c *Client) sendMessage(message *dpb.Message) error {
@@ -63,6 +65,27 @@ func (c *Client) sendError() error {
 	return nil
 }
 
+func (c *Client) startCollab() error {
+	stream, err := c.Client.EditDoc(context.Background())
+	if err != nil {
+		log.Fatalf("stream error %v", err)
+		return err
+	}
+	c.Stream = stream
+	return nil
+}
+
+func (c *Client) receiveMessages(msgChan chan<- *dpb.Message) {
+	for {
+		msg, err := c.Stream.Recv()
+		if err != nil {
+			log.Fatalf("stream recv error %v", err)
+			close(msgChan)
+			return
+		}
+		msgChan <- msg
+	}
+}
 func main() {
 	id := flag.Int("id", 1, "client id")
 	flag.Parse()
@@ -78,14 +101,22 @@ func main() {
 		Client: dpb.NewDocsServiceClient(conn),
 		Name:   fmt.Sprintf("client%v", *id),
 	}
+
 	uiConfig := UIConfig{
 		EditorConfig: editor.EditorConfig{
 			ScrollEnabled: true,
 		},
 	}
 	client.registerClient()
+	err = client.startCollab()
+	if err != nil {
+		client.sendError()
+		return
+	}
+	go client.receiveMessages(msgChan)
 	err2 := initUI(uiConfig)
 	if err2 != nil {
 		log.Fatalf("init ui error %v\n", err)
 	}
+
 }

@@ -7,6 +7,7 @@ import (
 	utils "docs/pkg/utils"
 	"errors"
 	"fmt"
+	"io"
 	"log"
 	"net"
 	"sync"
@@ -15,20 +16,74 @@ import (
 )
 
 type Server struct {
-	dpb.UnsafeDocsServiceServer
+	dpb.UnimplementedDocsServiceServer
 	Clients  []string
-	Active   []bool
+	Active   map[string]bool
 	Mu       sync.Mutex
 	Document crdt.Document // does server store the Document? for now yes
+	Streams  map[string]dpb.DocsService_EditDocServer
 }
 
 // SendMessage(context.Context, *Message) (*MessageResponse, error)
 // RegisterClient(context.Context, *Message) (*Document, error)
+// SendError(context.Context, *Message) (*Empty, error)
+// EditDoc(grpc.BidiStreamingServer[Message, Message]) error
 
-func (s *Server) SendError(ctx context.Context, msg *dpb.Message) (*dpb.Empty, error) {
-	fmt.Print("Client %v error-ed\n", msg.Username)
-	return &dpb.Empty{}, nil
+func (s *Server) EditDoc(stream dpb.DocsService_EditDocServer) error {
+	for {
+		in, err := stream.Recv()
+		if err == io.EOF {
+			return nil
+		}
+		if err != nil {
+			return err
+		}
+		// time.Sleep(500 * time.Millisecond)
+		client := in.Username
+
+		s.Mu.Lock()
+		if _, exists := s.Streams[client]; !exists {
+			s.Streams[client] = stream
+			s.Active[client] = true
+		}
+		s.Mu.Unlock()
+
+		s.processMessage(in)
+		s.forwardMessageToClients(in, client)
+	}
 }
+
+func (s *Server) processMessage(msg *dpb.Message) {
+	s.Mu.Lock()
+	defer s.Mu.Unlock()
+
+	fmt.Printf("\nProcessing msg: {\n"+
+		"  Document: %v,\n"+
+		"  Text: %v,\n"+
+		"  Username: %v,\n"+
+		"  MessageType: %v,\n"+
+		"  Operation: %v\n"+
+		"}\n",
+		msg.Document, msg.Text, msg.Username, msg.MessageType, msg.Operation)
+
+	s.Document = *utils.GetDocument(msg.Document) // update the server document
+}
+
+func (s *Server) forwardMessageToClients(msg *dpb.Message, sender string) {
+	s.Mu.Lock()
+	defer s.Mu.Unlock()
+
+	for client, stream := range s.Streams {
+		if client != sender && s.Active[client] {
+			err := stream.Send(msg)
+			if err != nil {
+				fmt.Printf("Error sending message to client %s: %v\n", client, err)
+				s.Active[client] = false
+			}
+		}
+	}
+}
+
 func (s *Server) RegisterClient(ctx context.Context, msg *dpb.Message) (*dpb.Document, error) {
 	if len(s.Document.Characters) == 0 {
 		return nil, errors.New("first client")
@@ -47,11 +102,16 @@ func (s *Server) SendMessage(ctx context.Context, msg *dpb.Message) (*dpb.Messag
 		"}\n",
 		msg.Document, msg.Text, msg.Username, msg.MessageType, msg.Operation)
 
-	s.Document = *utils.GetDocument(msg.Document)
+	s.Document = *utils.GetDocument(msg.Document) // this is our document now
 
 	return &dpb.MessageResponse{
 		Success: true,
 	}, nil
+}
+
+func (s *Server) SendError(ctx context.Context, msg *dpb.Message) (*dpb.Empty, error) {
+	fmt.Printf("Client %v error-ed\n", msg.Username)
+	return &dpb.Empty{}, nil
 }
 
 func main() {
@@ -61,7 +121,11 @@ func main() {
 	}
 
 	s := grpc.NewServer()
-	dpb.RegisterDocsServiceServer(s, &Server{})
+	dpb.RegisterDocsServiceServer(s, &Server{
+		Clients: make([]string, 0),
+		Active:  make(map[string]bool),
+		Streams: make(map[string]dpb.DocsService_EditDocServer),
+	})
 	if err := s.Serve(lis); err != nil {
 		log.Fatalf("failed to serve: %v", err)
 	}
