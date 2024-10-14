@@ -5,15 +5,15 @@ build protofiles
 make build_proto
 ```
 
-build Go binaries
+build Go binaries (optionally run go mod tidy)
 
 ```bash
 make build
 ```
 
-Run the servers
+Run the servers (optionally run them maually by passing ID variable)
 ```bash
-make make run_servers SERVERS=7
+make run_servers SERVERS=7
 ```
 
 Run the client

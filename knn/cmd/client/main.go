@@ -47,6 +47,9 @@ func queryServer(serverAddr string, query *knnpb.Query, results chan<- []*knnpb.
 		log.Printf("Failed to get KNN from server %s: %v", serverAddr, err)
 		return
 	}
+	if resp == nil {
+		fmt.Print("Not enough points in server\n")
+	}
 	// fmt.Printf("recieved %v from %v\n", resp.Points, serverAddr)
 	results <- resp.Points
 }
@@ -89,7 +92,10 @@ func main() {
 	close(results)
 
 	kNearest := utils.ProcessResults(*k, results)
-
+	if len(kNearest) == 0 {
+		fmt.Print("Not enough points in dataset")
+		return
+	}
 	fmt.Printf("The %d nearest neighbors to point (%.2f, %.2f) are:\n", *k, *x, *y)
 	for i := 0; i < *k && i < len(kNearest); i++ {
 		point := kNearest[i]

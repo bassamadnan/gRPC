@@ -22,7 +22,12 @@ type server struct {
 	totalServers int32
 }
 
+var totalFileLines int = 0
+
 func (s *server) GetKNN(ctx context.Context, query *knnpb.Query) (*knnpb.Distances, error) {
+	if totalFileLines < int(query.K) {
+		return nil, nil
+	}
 	queryPoint := knn.Point{X: query.Point.X, Y: query.Point.Y}
 	k := int(query.K)
 
@@ -59,6 +64,7 @@ func main() {
 
 	// total number of lines in the file
 	totalLines, err := utils.CountFileLines("data.txt")
+	totalFileLines = totalLines
 	if err != nil {
 		log.Fatalf("Failed to count lines in dataset: %v", err)
 	}
