@@ -48,6 +48,11 @@ func (c *Client) registerClient() error {
 	docRecieved, err := c.Client.RegisterClient(ctx, message)
 	if err != nil {
 		// log.Fatalf("error in getting servers %v\n", err)
+		if docRecieved == nil {
+			return nil
+		}
+		doc = *utils.GetDocument(docRecieved)
+		e.SetText(crdt.Content(doc))
 		return nil
 	}
 	doc = *utils.GetDocument(docRecieved)

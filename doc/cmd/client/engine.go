@@ -3,7 +3,7 @@ package main
 import (
 	"docs/crdt"
 	dpb "docs/pkg/proto/docs"
-	utils "docs/pkg/utils"
+	"docs/pkg/utils"
 	"log"
 
 	"github.com/nsf/termbox-go"
@@ -85,8 +85,8 @@ func performLocalOperation(opType int, ev termbox.Event) {
 			MessageType: dpb.Message_OPERATION,
 			Operation:   &dpb.Operation{OperationType: dpb.Operation_INSERT, Position: int32(e.Cursor), Value: ch},
 			Text:        text,
-			Document:    utils.GetDocumentProto(doc),
-			Username:    client.Name,
+			// Document:    utils.GetDocumentProto(doc),
+			Username: client.Name,
 		}
 	case OperationDelete:
 		if e.Cursor-1 < 0 {
@@ -98,8 +98,8 @@ func performLocalOperation(opType int, ev termbox.Event) {
 			MessageType: dpb.Message_OPERATION,
 			Operation:   &dpb.Operation{OperationType: dpb.Operation_DELETE, Position: int32(e.Cursor)},
 			Text:        text,
-			Document:    utils.GetDocumentProto(doc),
-			Username:    client.Name,
+			// Document:    utils.GetDocumentProto(doc),
+			Username: client.Name,
 		}
 		e.MoveCursor(-1, 0)
 	}
@@ -113,21 +113,25 @@ func performLocalOperation(opType int, ev termbox.Event) {
 }
 
 func handleServerMessage(msg *dpb.Message) {
-
+	doc = crdt.New()
+	doc = *utils.GetDocument(msg.Document)
+	e.SetText(crdt.Content(doc))
+	// e.SendDraw()
 	switch msg.Operation.OperationType {
 	case dpb.Operation_INSERT:
-		_, err := doc.Insert(int(msg.Operation.Position), msg.Operation.Value)
-		if err != nil {
-			client.sendError()
-			log.Fatal("send error")
-		}
-		e.SetText(crdt.Content(doc))
+		// _, err := doc.Insert(int(msg.Operation.Position), msg.Operation.Value)
+		// if err != nil {
+		// 	client.sendError()
+		// 	log.Fatal("send error")
+		// }
+		// e.SetText(crdt.Content(doc))
+
 		if msg.Operation.Position-1 <= int32(e.Cursor) {
 			e.MoveCursor(len(msg.Operation.Value), 0)
 		}
 	case dpb.Operation_DELETE:
-		_ = doc.Delete(int(msg.Operation.Position))
-		e.SetText(crdt.Content(doc))
+		// _ = doc.Delete(int(msg.Operation.Position))
+		// e.SetText(crdt.Content(doc))
 		if msg.Operation.Position-1 <= int32(e.Cursor) {
 			e.MoveCursor(-len(msg.Operation.Value), 0)
 		}

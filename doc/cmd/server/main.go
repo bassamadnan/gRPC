@@ -22,6 +22,7 @@ type Server struct {
 	Mu       sync.Mutex
 	Document crdt.Document // does server store the Document? for now yes
 	Streams  map[string]dpb.DocsService_EditDocServer
+	Count    int
 }
 
 // SendMessage(context.Context, *Message) (*MessageResponse, error)
@@ -47,7 +48,7 @@ func (s *Server) EditDoc(stream dpb.DocsService_EditDocServer) error {
 			s.Active[client] = true
 		}
 
-		// s.processMessage(in)
+		s.processMessage(in)
 		s.forwardMessageToClients(in, client)
 		s.Mu.Unlock()
 	}
@@ -65,16 +66,25 @@ func (s *Server) processMessage(msg *dpb.Message) {
 		"  Operation: %v\n"+
 		"}\n",
 		msg.Document, msg.Text, msg.Username, msg.MessageType, msg.Operation)
-
-	s.Document = *utils.GetDocument(msg.Document) // update the server document
+	switch msg.Operation.OperationType {
+	case dpb.Operation_INSERT:
+		// fmt.Print("inserted")
+		s.Document.Insert(int(msg.Operation.Position), msg.Operation.Value)
+	case dpb.Operation_DELETE:
+		// fmt.Print("deleted")
+		s.Document.Delete(int(msg.Operation.Position))
+	}
+	fmt.Printf("\n\nCurrent docuemtn %v\n", s.Document)
+	// s.Document = *utils.GetDocument(msg.Document) // update the server document
 }
 
 func (s *Server) forwardMessageToClients(msg *dpb.Message, sender string) {
 	// s.Mu.Lock()
 	// defer s.Mu.Unlock()
-
+	msg.Document = utils.GetDocumentProto(s.Document)
 	for client, stream := range s.Streams {
 		if client != sender && s.Active[client] {
+			fmt.Print("sending to anoter client")
 			err := stream.Send(msg)
 			if err != nil {
 				fmt.Printf("Error sending message to client %s: %v\n", client, err)
@@ -85,12 +95,14 @@ func (s *Server) forwardMessageToClients(msg *dpb.Message, sender string) {
 }
 
 func (s *Server) RegisterClient(ctx context.Context, msg *dpb.Message) (*dpb.Document, error) {
-	s.Active[msg.Username] = true
-
-	if len(s.Document.Characters) == 0 {
+	if s.Count == 0 {
+		s.Count++
+		log.Printf("first client sent")
 		return nil, errors.New("first client")
 	}
+	s.Count++
 	doc := utils.GetDocumentProto(s.Document)
+	fmt.Printf("cleint %v sent -> %v", msg.Username, s.Document)
 	return doc, nil
 }
 
@@ -124,9 +136,11 @@ func main() {
 
 	s := grpc.NewServer()
 	dpb.RegisterDocsServiceServer(s, &Server{
-		Clients: make([]string, 0),
-		Active:  make(map[string]bool),
-		Streams: make(map[string]dpb.DocsService_EditDocServer),
+		Clients:  make([]string, 0),
+		Active:   make(map[string]bool),
+		Streams:  make(map[string]dpb.DocsService_EditDocServer),
+		Count:    0,
+		Document: crdt.New(),
 	})
 	if err := s.Serve(lis); err != nil {
 		log.Fatalf("failed to serve: %v", err)
