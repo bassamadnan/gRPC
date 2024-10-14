@@ -107,13 +107,13 @@ func main() {
 			ScrollEnabled: true,
 		},
 	}
-	client.registerClient()
 	err = client.startCollab()
 	if err != nil {
 		client.sendError()
 		return
 	}
 	go client.receiveMessages(msgChan)
+	client.registerClient()
 	err2 := initUI(uiConfig)
 	if err2 != nil {
 		log.Fatalf("init ui error %v\n", err)

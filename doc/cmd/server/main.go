@@ -46,16 +46,16 @@ func (s *Server) EditDoc(stream dpb.DocsService_EditDocServer) error {
 			s.Streams[client] = stream
 			s.Active[client] = true
 		}
-		s.Mu.Unlock()
 
-		s.processMessage(in)
+		// s.processMessage(in)
 		s.forwardMessageToClients(in, client)
+		s.Mu.Unlock()
 	}
 }
 
 func (s *Server) processMessage(msg *dpb.Message) {
-	s.Mu.Lock()
-	defer s.Mu.Unlock()
+	// s.Mu.Lock()
+	// defer s.Mu.Unlock()
 
 	fmt.Printf("\nProcessing msg: {\n"+
 		"  Document: %v,\n"+
@@ -70,8 +70,8 @@ func (s *Server) processMessage(msg *dpb.Message) {
 }
 
 func (s *Server) forwardMessageToClients(msg *dpb.Message, sender string) {
-	s.Mu.Lock()
-	defer s.Mu.Unlock()
+	// s.Mu.Lock()
+	// defer s.Mu.Unlock()
 
 	for client, stream := range s.Streams {
 		if client != sender && s.Active[client] {
@@ -85,6 +85,8 @@ func (s *Server) forwardMessageToClients(msg *dpb.Message, sender string) {
 }
 
 func (s *Server) RegisterClient(ctx context.Context, msg *dpb.Message) (*dpb.Document, error) {
+	s.Active[msg.Username] = true
+
 	if len(s.Document.Characters) == 0 {
 		return nil, errors.New("first client")
 	}
