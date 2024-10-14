@@ -26,15 +26,11 @@ message Operation{
 
 message Message{
     enum Type{
-        DOC_SYNC = 0;
-        DOC_REQ = 1;
-        SITE_ID = 2;
-        JOIN = 3;
-        USERS = 4;
-        OPERATION = 5;
+        JOIN = 0;
+        OPERATION = 1;
     }
     Type messageType = 1;
-    string id = 2; // ID represents the client's UUID.
+    string id = 2; // ID represents the client's UUID. we dont really use it
     string username = 3;
     // Text represents the body of the message. This is being used for joining messages, the siteID, and the list of active users.
     string text = 4;

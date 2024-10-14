@@ -119,6 +119,12 @@ func main() {
 	}
 	go client.receiveMessages(msgChan)
 	client.registerClient()
+	msg := &dpb.Message{
+		MessageType: dpb.Message_JOIN,
+		Text:        "</>",
+		Username:    client.Name,
+	}
+	client.Stream.Send(msg)
 	err2 := initUI(uiConfig)
 	if err2 != nil {
 		log.Fatalf("init ui error %v\n", err)

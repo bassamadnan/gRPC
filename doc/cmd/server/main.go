@@ -10,6 +10,7 @@ import (
 	"io"
 	"log"
 	"net"
+	"os"
 	"sync"
 
 	"google.golang.org/grpc"
@@ -23,6 +24,7 @@ type Server struct {
 	Document crdt.Document // does server store the Document? for now yes
 	Streams  map[string]dpb.DocsService_EditDocServer
 	Count    int
+	LogFile  string
 }
 
 // SendMessage(context.Context, *Message) (*MessageResponse, error)
@@ -47,9 +49,13 @@ func (s *Server) EditDoc(stream dpb.DocsService_EditDocServer) error {
 			s.Streams[client] = stream
 			s.Active[client] = true
 		}
-
-		s.processMessage(in)
-		s.forwardMessageToClients(in, client)
+		if in.MessageType == dpb.Message_JOIN {
+			fmt.Printf("stream created %v\n", in.Username)
+			// dont do anything, just create above stream
+		} else {
+			s.processMessage(in)
+			s.forwardMessageToClients(in, client)
+		}
 		s.Mu.Unlock()
 	}
 }
@@ -66,6 +72,25 @@ func (s *Server) processMessage(msg *dpb.Message) {
 		"  Operation: %v\n"+
 		"}\n",
 		msg.Document, msg.Text, msg.Username, msg.MessageType, msg.Operation)
+
+	// append the msg operation operation type, msg username , the index if insert then the text
+	logEntry := fmt.Sprintf("Operation: %v, Username: %v", msg.Operation.OperationType, msg.Username)
+	if msg.Operation.OperationType == dpb.Operation_INSERT {
+		logEntry += fmt.Sprintf(", Index: %d, Text: %s", msg.Operation.Position, msg.Operation.Value)
+	} else if msg.Operation.OperationType == dpb.Operation_DELETE {
+		logEntry += fmt.Sprintf(", Index: %d", msg.Operation.Position)
+	}
+
+	f, err := os.OpenFile(s.LogFile, os.O_APPEND|os.O_WRONLY|os.O_CREATE, 0644)
+	if err != nil {
+		fmt.Printf("Error opening log file: %v\n", err)
+	} else {
+		defer f.Close()
+		if _, err := f.WriteString(logEntry + "\n"); err != nil {
+			fmt.Printf("Error writing to log file: %v\n", err)
+		}
+	}
+
 	switch msg.Operation.OperationType {
 	case dpb.Operation_INSERT:
 		// fmt.Print("inserted")
@@ -142,6 +167,7 @@ func main() {
 		Streams:  make(map[string]dpb.DocsService_EditDocServer),
 		Count:    0,
 		Document: crdt.New(),
+		LogFile:  "logs.txt",
 	})
 	if err := s.Serve(lis); err != nil {
 		log.Fatalf("failed to serve: %v", err)

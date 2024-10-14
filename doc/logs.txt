@@ -1,0 +1,62 @@
+Operation: INSERT, Username: client1, Index: 1, Text: a
+Operation: INSERT, Username: client1, Index: 2, Text: s
+Operation: INSERT, Username: client1, Index: 3, Text: d
+Operation: INSERT, Username: client1, Index: 4, Text: s
+Operation: INSERT, Username: client1, Index: 5, Text: d
+Operation: INSERT, Username: client1, Index: 6, Text: f
+Operation: INSERT, Username: client1, Index: 7, Text: 
+
+Operation: INSERT, Username: client1, Index: 8, Text: 
+
+Operation: INSERT, Username: client1, Index: 9, Text: 
+
+Operation: INSERT, Username: client1, Index: 10, Text: s
+Operation: INSERT, Username: client1, Index: 11, Text: d
+Operation: INSERT, Username: client1, Index: 12, Text: f
+Operation: INSERT, Username: client2, Index: 1, Text: f
+Operation: INSERT, Username: client2, Index: 2, Text: f
+Operation: INSERT, Username: client2, Index: 3, Text: g
+Operation: INSERT, Username: client2, Index: 4, Text: h
+Operation: DELETE, Username: client2, Index: 4
+Operation: DELETE, Username: client2, Index: 3
+Operation: DELETE, Username: client1, Index: 14
+Operation: INSERT, Username: client1, Index: 1, Text: a
+Operation: INSERT, Username: client1, Index: 2, Text: s
+Operation: INSERT, Username: client1, Index: 3, Text: d
+Operation: INSERT, Username: client1, Index: 4, Text: a
+Operation: INSERT, Username: client1, Index: 5, Text: s
+Operation: INSERT, Username: client1, Index: 6, Text: d
+Operation: INSERT, Username: client1, Index: 7, Text: a
+Operation: INSERT, Username: client1, Index: 8, Text: s
+Operation: INSERT, Username: client1, Index: 9, Text: d
+Operation: INSERT, Username: client1, Index: 10, Text: a
+Operation: INSERT, Username: client1, Index: 11, Text: s
+Operation: INSERT, Username: client1, Index: 12, Text: d
+Operation: INSERT, Username: client1, Index: 13, Text: 
+
+Operation: INSERT, Username: client1, Index: 14, Text: 
+
+Operation: INSERT, Username: client1, Index: 15, Text: 
+
+Operation: INSERT, Username: client2, Index: 1, Text: s
+Operation: INSERT, Username: client2, Index: 2, Text: s
+Operation: INSERT, Username: client1, Index: 18, Text: f
+Operation: INSERT, Username: client1, Index: 19, Text: s
+Operation: INSERT, Username: client1, Index: 20, Text: d
+Operation: INSERT, Username: client1, Index: 21, Text: f
+Operation: INSERT, Username: client2, Index: 3, Text: f
+Operation: INSERT, Username: client2, Index: 4, Text: h
+Operation: INSERT, Username: client2, Index: 5, Text: f
+Operation: INSERT, Username: client2, Index: 6, Text: d
+Operation: INSERT, Username: client2, Index: 7, Text: s
+Operation: INSERT, Username: client1, Index: 27, Text: f
+Operation: INSERT, Username: client1, Index: 28, Text: h
+Operation: INSERT, Username: client1, Index: 29, Text: g
+Operation: INSERT, Username: client1, Index: 30, Text: f
+Operation: INSERT, Username: client1, Index: 31, Text: 1
+Operation: INSERT, Username: client1, Index: 32, Text: `
+Operation: INSERT, Username: client1, Index: 33, Text: 2
+Operation: INSERT, Username: client1, Index: 34, Text: 3
+Operation: INSERT, Username: client3, Index: 1, Text: c
+Operation: INSERT, Username: client3, Index: 2, Text: v
+Operation: INSERT, Username: client3, Index: 3, Text: c
