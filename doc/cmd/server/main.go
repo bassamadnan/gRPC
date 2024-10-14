@@ -81,9 +81,10 @@ func (s *Server) processMessage(msg *dpb.Message) {
 func (s *Server) forwardMessageToClients(msg *dpb.Message, sender string) {
 	// s.Mu.Lock()
 	// defer s.Mu.Unlock()
+	fmt.Print(sender)
 	msg.Document = utils.GetDocumentProto(s.Document)
 	for client, stream := range s.Streams {
-		if client != sender && s.Active[client] {
+		if s.Active[client] {
 			fmt.Print("sending to anoter client")
 			err := stream.Send(msg)
 			if err != nil {

@@ -109,6 +109,7 @@ func performLocalOperation(opType int, ev termbox.Event) {
 		log.Printf("error sendmsg %v", err)
 		e.StatusChan <- "lost connection!"
 	}
+	e.SendDraw()
 
 }
 
@@ -117,6 +118,10 @@ func handleServerMessage(msg *dpb.Message) {
 	doc = *utils.GetDocument(msg.Document)
 	e.SetText(crdt.Content(doc))
 	// e.SendDraw()
+	if msg.Username == client.Name {
+		e.SendDraw()
+		return
+	}
 	switch msg.Operation.OperationType {
 	case dpb.Operation_INSERT:
 		// _, err := doc.Insert(int(msg.Operation.Position), msg.Operation.Value)
